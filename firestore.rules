@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net: default catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definitions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // match /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                    incoming().uid == userId && 
+                    incoming().keys().hasAll(['uid', 'name', 'email', 'updatedAt']) &&
+                    incoming().keys().size() == 4 &&
+                    incoming().name is string && incoming().name.size() <= 100 &&
+                    incoming().email is string && incoming().email.size() <= 150;
+      allow update: if isOwner(userId) && 
+                    incoming().uid == userId && 
+                    incoming().keys().hasAll(['uid', 'name', 'email', 'updatedAt']) &&
+                    incoming().keys().size() == 4 &&
+                    incoming().name is string && incoming().name.size() <= 100 &&
+                    incoming().email is string && incoming().email.size() <= 150;
+    }
+
+    // match /users/{userId}/accounts/{accountId}
+    match /users/{userId}/accounts/{accountId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(accountId) &&
+                    incoming().id == accountId &&
+                    incoming().keys().hasAll(['id', 'name', 'type', 'balance', 'initialBalance', 'status', 'updatedAt']) &&
+                    incoming().keys().size() == 7 &&
+                    incoming().name is string && incoming().name.size() <= 100 &&
+                    incoming().type in ['Fondeo', 'Demo', 'Real'] &&
+                    incoming().balance is number &&
+                    incoming().initialBalance is number &&
+                    incoming().status in ['Activa', 'Inactiva'];
+      allow update: if isOwner(userId) && isValidId(accountId) &&
+                    incoming().id == accountId &&
+                    incoming().name is string && incoming().name.size() <= 100 &&
+                    incoming().type in ['Fondeo', 'Demo', 'Real'] &&
+                    incoming().balance is number &&
+                    incoming().initialBalance is number &&
+                    incoming().status in ['Activa', 'Inactiva'];
+      allow delete: if isOwner(userId) && isValidId(accountId);
+    }
+
+    // match /users/{userId}/trades/{tradeId}
+    match /users/{userId}/trades/{tradeId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(tradeId) &&
+                    incoming().id == tradeId &&
+                    incoming().keys().hasAll([
+                      'id', 'date', 'time', 'symbol', 'assetType', 'action', 'quantity', 
+                      'entryPrice', 'exitPrice', 'commissions', 'fees', 'setups', 'mistakes', 
+                      'notes', 'pnl', 'netPnl', 'status', 'accountId', 'updatedAt'
+                    ]) &&
+                    (incoming().keys().size() == 19 || (incoming().keys().size() == 20 && 'screenshot' in incoming().keys())) &&
+                    incoming().symbol is string && incoming().symbol.size() <= 50 &&
+                    incoming().assetType in ['Stock', 'Option', 'Crypto', 'Forex', 'Futures'] &&
+                    incoming().action in ['Buy', 'Sell'] &&
+                    incoming().quantity is number &&
+                    incoming().entryPrice is number &&
+                    incoming().exitPrice is number &&
+                    incoming().commissions is number &&
+                    incoming().fees is number &&
+                    incoming().pnl is number &&
+                    incoming().netPnl is number &&
+                    incoming().accountId is string && incoming().accountId.size() <= 128 &&
+                    incoming().status in ['Win', 'Loss', 'Flat'] &&
+                    incoming().setups is list &&
+                    incoming().mistakes is list &&
+                    incoming().notes is string && incoming().notes.size() <= 5000 &&
+                    (!('screenshot' in incoming()) || (incoming().screenshot is string && incoming().screenshot.size() <= 2500000));
+      allow update: if isOwner(userId) && isValidId(tradeId) &&
+                    incoming().id == tradeId &&
+                    incoming().symbol is string && incoming().symbol.size() <= 50 &&
+                    incoming().assetType in ['Stock', 'Option', 'Crypto', 'Forex', 'Futures'] &&
+                    incoming().action in ['Buy', 'Sell'] &&
+                    incoming().quantity is number &&
+                    incoming().entryPrice is number &&
+                    incoming().exitPrice is number &&
+                    incoming().commissions is number &&
+                    incoming().fees is number &&
+                    incoming().pnl is number &&
+                    incoming().netPnl is number &&
+                    incoming().accountId is string && incoming().accountId.size() <= 128 &&
+                    incoming().status in ['Win', 'Loss', 'Flat'] &&
+                    incoming().setups is list &&
+                    incoming().mistakes is list &&
+                    incoming().notes is string && incoming().notes.size() <= 5000 &&
+                    (!('screenshot' in incoming()) || (incoming().screenshot is string && incoming().screenshot.size() <= 2500000));
+      allow delete: if isOwner(userId) && isValidId(tradeId);
+    }
+
+    // match /users/{userId}/journalEntries/{entryId}
+    match /users/{userId}/journalEntries/{entryId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(entryId) &&
+                    incoming().id == entryId &&
+                    incoming().title is string && incoming().title.size() <= 100 &&
+                    incoming().content is string && incoming().content.size() <= 10000;
+      allow update: if isOwner(userId) && isValidId(entryId) &&
+                    incoming().id == entryId &&
+                    incoming().title is string && incoming().title.size() <= 100 &&
+                    incoming().content is string && incoming().content.size() <= 10000;
+      allow delete: if isOwner(userId) && isValidId(entryId);
+    }
+
+  }
+}

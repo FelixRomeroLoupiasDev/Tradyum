@@ -1,0 +1,8 @@
+{
+  "name": "Tradyum",
+  "description": "A high-fidelity Tradyum trading journal featuring trade logging, custom setups, visual P&L analytics, a monthly calendar dashboard, modular trade replay charts, and persistent local storage synched with a server-side Gemini-powered AI Trade Coach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

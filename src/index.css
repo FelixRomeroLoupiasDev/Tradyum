@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-[#0b0f19]: #130f22;
+  --color-[#111827]: #1e152d;
+  --color-[#101726]: #1e152d;
+  --color-[#1e293b]: #2d2045;
+  --color-emerald-500: #10b981;
+  --color-rose-500: #f43f5e;
+}
+
+/* Custom modern scrollbar for professional dashboard feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #130f22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b1f41;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3c2a5a;
+}
+
+/* Custom styles for active calendar days and interactive playbacks */
+body {
+  font-family: var(--font-sans);
+  background-color: #130f22;
+  color: #f1f5f9;
+}

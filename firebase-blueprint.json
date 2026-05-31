@@ -1,0 +1,194 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document storing basic details and timestamp",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique Firebase Auth user ID"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "name", "email", "updatedAt"]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "A trading account associated with the user",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Fondeo", "Demo", "Real"]
+        },
+        "balance": {
+          "type": "number"
+        },
+        "initialBalance": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Activa", "Inactiva"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "type", "balance", "initialBalance", "status"]
+    },
+    "Trade": {
+      "title": "Trade",
+      "description": "A recorded trade entry",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "assetType": {
+          "type": "string",
+          "enum": ["Stock", "Option", "Crypto", "Forex"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["Buy", "Sell"]
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "entryPrice": {
+          "type": "number"
+        },
+        "exitPrice": {
+          "type": "number"
+        },
+        "commissions": {
+          "type": "number"
+        },
+        "fees": {
+          "type": "number"
+        },
+        "setups": {
+          "type": "array"
+        },
+        "mistakes": {
+          "type": "array"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "pnl": {
+          "type": "number"
+        },
+        "netPnl": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Win", "Loss", "Flat"]
+        },
+        "accountId": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "time",
+        "symbol",
+        "assetType",
+        "action",
+        "quantity",
+        "entryPrice",
+        "exitPrice",
+        "commissions",
+        "fees",
+        "setups",
+        "mistakes",
+        "notes",
+        "pnl",
+        "netPnl",
+        "status",
+        "accountId"
+      ]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "A diary or journal entry noting psychological reflections or learnings",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "associatedSymbol": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "date", "time", "title", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile details"
+    },
+    "/users/{userId}/accounts/{accountId}": {
+      "schema": "Account",
+      "description": "A list of trading accounts belonging to the specific user"
+    },
+    "/users/{userId}/trades/{tradeId}": {
+      "schema": "Trade",
+      "description": "A list of trades logged by the specific user"
+    },
+    "/users/{userId}/journalEntries/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "A list of notes and logs in the personal journal"
+    }
+  }
+}
