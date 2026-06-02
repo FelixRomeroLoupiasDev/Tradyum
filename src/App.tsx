@@ -121,7 +121,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState({
     name: "Invitado",
     email: "",
-    plan: "Free", // "Free" | "Pro" | "Elite"
+    plan: "Elite", // All features unlocked for free usage by request
     subscriptionId: "",
     mpPreapprovalId: ""
   });
@@ -267,7 +267,10 @@ export default function App() {
       if (user) {
         setUserProfile({
           name: user.displayName || "Usuario Tradyum",
-          email: user.email || ""
+          email: user.email || "",
+          plan: "Elite",
+          subscriptionId: "unlocked_free",
+          mpPreapprovalId: "unlocked_free"
         });
         
         // Write profile details to Firestore
@@ -288,7 +291,10 @@ export default function App() {
       } else {
         setUserProfile({
           name: "Invitado",
-          email: ""
+          email: "",
+          plan: "Elite",
+          subscriptionId: "",
+          mpPreapprovalId: ""
         });
       }
       setIsLoadingAuth(false);
@@ -377,7 +383,7 @@ export default function App() {
           ...prev,
           name: udata.name || prev.name,
           email: udata.email || prev.email,
-          plan: udata.plan || "Free",
+          plan: "Elite", // Forced Elite for free open usage
           subscriptionId: udata.subscriptionId || "",
           mpPreapprovalId: udata.mpPreapprovalId || ""
         }));
