@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useMemo, useRef, DragEvent, ChangeEvent, FormEvent } from "react";
 import { Trade, Account, AssetType, TradeAction } from "../types";
 import { 
   BrokerPlatform, 
@@ -19,15 +19,26 @@ import {
   CheckCheck, 
   AlertCircle,
   HelpCircle,
-  Wallet
+  Wallet,
+  Key,
+  ShieldAlert,
+  Download,
+  Info
 } from "lucide-react";
+
+// Importar los adaptadores desarrollados de Tradyum Integrations
+import { importFromNinjaTrader } from "../integrations/ninjatrader/index.js";
+import { importFromTradovate } from "../integrations/tradovate/index.js";
+import { importFromMT4 } from "../integrations/mt4/index.js";
+import { importFromMT5 } from "../integrations/mt5/index.js";
+import { importFromTradingView } from "../integrations/tradingview/index.js";
 
 interface ImportTradesViewProps {
   accounts: Account[];
   existingTrades: Trade[];
   onImport: (importedTrades: Trade[], mode: "append" | "replace", accountId: string, skipDuplicates: boolean) => void;
   onCancel?: () => void;
-  progressPct: number; // to disable imports if daily limit is reached
+  progressPct: number; // para deshabilitar si el límite de pérdida diaria está activo
 }
 
 export default function ImportTradesView({
@@ -43,7 +54,7 @@ export default function ImportTradesView({
   const [availableHeaders, setAvailableHeaders] = useState<string[]>([]);
   const [detectedMap, setDetectedMap] = useState<MappedFields | null>(null);
   
-  // Custom mapping state for generic platform
+  // Mapeador personalizado genérico
   const [customMap, setCustomMap] = useState<MappedFields>({
     dateTimeCol: "",
     symbolCol: "",
@@ -61,12 +72,73 @@ export default function ImportTradesView({
   const [importMode, setImportMode] = useState<"append" | "replace">("append");
   const [skipDuplicates, setSkipDuplicates] = useState<boolean>(true);
 
+  // Estados de Tradovate API
+  const [tradovateUser, setTradovateUser] = useState("");
+  const [tradovatePass, setTradovatePass] = useState("");
+  const [tradovateAppId, setTradovateAppId] = useState("");
+  const [tradovateAppVersion, setTradovateAppVersion] = useState("1.0.0");
+  const [tradovateAppName, setTradovateAppName] = useState("TradyumApp");
+  const [tradovateIsLive, setTradovateIsLive] = useState(false);
+  const [isSyncingTradovate, setIsSyncingTradovate] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isParsingImage, setIsParsingImage] = useState(false);
   const [imageParseError, setImageParseError] = useState("");
 
-  // Parse and preview current CSV
+  /**
+   * Mapeador: Convierte el esquema genérico normalizado de Tradyum Integrations
+   * al tipo específico TypeScript `Trade` que maneja la base o estado de la app.
+   */
+  const mapNormalizedToTradyumTrade = (norm: any, index: number, targetAccId: string): Trade => {
+    let parsedAsset = AssetType.FUTURES;
+    const m = String(norm.market || "Futures").toLowerCase();
+    if (m.includes("crypto")) parsedAsset = AssetType.CRYPTO;
+    else if (m.includes("forex")) parsedAsset = AssetType.FOREX;
+    else if (m.includes("stock")) parsedAsset = AssetType.STOCK;
+    else if (m.includes("option")) parsedAsset = AssetType.OPTION;
+
+    const action = (norm.type || "Long").toLowerCase() === "short" ? TradeAction.SELL : TradeAction.BUY;
+
+    // Extraer fecha y hora desde ISO retornado
+    let tradeDate = new Date().toISOString().split("T")[0];
+    let tradeTime = "12:00";
+    if (norm.date) {
+      try {
+        const d = new Date(norm.date);
+        if (!isNaN(d.getTime())) {
+          tradeDate = d.toISOString().split("T")[0];
+          tradeTime = d.toTimeString().split(" ")[0].slice(0, 5); // formato HH:MM
+        }
+      } catch (e) {}
+    }
+
+    const pnl = parseFloat(norm.pnl) || 0;
+    const status = pnl > 0.01 ? "Win" : pnl < -0.01 ? "Loss" : "Flat";
+
+    return {
+      id: `import_${norm.broker || "generic"}_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`,
+      date: tradeDate,
+      time: tradeTime,
+      symbol: String(norm.symbol || "UNKNOWN").toUpperCase(),
+      assetType: parsedAsset,
+      action: action,
+      quantity: parseInt(norm.quantity) || 1,
+      entryPrice: norm.rawData?.entryPrice || norm.rawData?.openPrice || norm.rawData?.entry || 100,
+      exitPrice: norm.rawData?.exitPrice || norm.rawData?.closePrice || norm.rawData?.exit || 100,
+      commissions: Math.abs(parseFloat(norm.rawData?.commission || norm.rawData?.commissions)) || 0,
+      fees: 0,
+      setups: [`Importado ${String(norm.broker || "broker").toUpperCase()}`],
+      mistakes: [],
+      notes: norm.notes || `Sincronizado vía ${norm.broker}`,
+      pnl: pnl,
+      netPnl: pnl,
+      status: status,
+      accountId: targetAccId
+    };
+  };
+
+  // Carga un CSV genérico
   const handleCSVLoad = (text: string, name: string) => {
     setCsvText(text);
     setFileName(name);
@@ -82,12 +154,11 @@ export default function ImportTradesView({
       setCustomMap(bestMap);
     }
     
-    // Clear preview so they click "Vista previa"
     setParsedResult([]);
     setParseErrors([]);
   };
 
-  // Parse picture using Gemini Flash Multimodal OCR API
+  // Carga y parsea una captura de pantalla usando Gemini Flash
   const handleImageLoad = async (dataUrl: string, mimeType: string, name: string) => {
     setIsParsingImage(true);
     setFileName(name);
@@ -108,7 +179,7 @@ export default function ImportTradesView({
       });
 
       if (!response.ok) {
-        throw new Error("Respuesta de API incorrecta. Verificá tu servidor.");
+        throw new Error("Respuesta de API incorrecta. Verificá tu servidor o llave.");
       }
 
       const data = await response.json();
@@ -146,7 +217,8 @@ export default function ImportTradesView({
             notes: `Procesado por IA de imagen: ${name}`,
             pnl: pnl,
             netPnl: netPnl,
-            status: status
+            status: status,
+            accountId: targetAccountId
           };
         });
 
@@ -166,6 +238,79 @@ export default function ImportTradesView({
     }
   };
 
+  // Procesar archivo text o imagen subido
+  const processEnteredFile = (file: File) => {
+    setFileName(file.name);
+    setImageParseError("");
+    setParsedResult([]);
+    setParseErrors([]);
+
+    const isImage = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target && typeof event.target.result === "string") {
+          handleImageLoad(event.target.result, file.type || "image/png", file.name);
+        }
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Archivo de texto (CSV, Reporte HTML)
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === "string") {
+        const text = event.target.result;
+        setCsvText(text);
+
+        // Parseo automático según broker seleccionado para feedback inmediato
+        if (platform === "ninjatrader") {
+          try {
+            const rawTrades = importFromNinjaTrader(text);
+            const formatted = rawTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+            setParsedResult(formatted);
+            if (rawTrades.length === 0) {
+              setParseErrors(["No se detectaron trades en el CSV de NinjaTrader. Verificá que sea un archivo de registros válido."]);
+            }
+          } catch (err: any) {
+            setParseErrors(["Error leyendo el CSV de NinjaTrader: " + err.message]);
+          }
+        } 
+        else if (platform === "metatrader") {
+          try {
+            const isMT5 = text.toLowerCase().includes("metatrader 5") || text.toLowerCase().includes("position");
+            const rawTrades = isMT5 ? importFromMT5(text, file.name) : importFromMT4(text, file.name);
+            const formatted = rawTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+            setParsedResult(formatted);
+            if (rawTrades.length === 0) {
+              setParseErrors(["No se extrajeron trades. Verificá que exportaste el Account History de MT4/MT5 seleccionando 'Save as Report' (HTML) o exportándolo como CSV."]);
+            }
+          } catch (err: any) {
+            setParseErrors(["Error decodificando reporte de MetaTrader: " + err.message]);
+          }
+        } 
+        else if (platform === "tradingview") {
+          try {
+            const rawTrades = importFromTradingView(text);
+            const formatted = rawTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+            setParsedResult(formatted);
+            if (rawTrades.length === 0) {
+              setParseErrors(["No se detectaron transacciones en el CSV de TradingView. ¿Exportaste de la pestaña 'Lista de operaciones'?"]);
+            }
+          } catch (err: any) {
+            setParseErrors(["Error cargando CSV de TradingView: " + err.message]);
+          }
+        } 
+        else {
+          handleCSVLoad(text, file.name);
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -181,65 +326,112 @@ export default function ImportTradesView({
     
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      if (file.name.endsWith(".csv")) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && typeof event.target.result === "string") {
-            handleCSVLoad(event.target.result, file.name);
-          }
-        };
-        reader.readAsText(file);
-      } else if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name)) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && typeof event.target.result === "string") {
-            handleImageLoad(event.target.result, file.type || "image/png", file.name);
-          }
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert("Formato de archivo no soportado. Subís un archivo CSV o de imagen (PNG, JPG, etc.).");
-      }
+      processEnteredFile(file);
     }
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.name.endsWith(".csv")) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && typeof event.target.result === "string") {
-            handleCSVLoad(event.target.result, file.name);
-          }
-        };
-        reader.readAsText(file);
-      } else if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name)) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && typeof event.target.result === "string") {
-            handleImageLoad(event.target.result, file.type || "image/png", file.name);
-          }
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert("Formato de archivo no soportado. Sube un archivo CSV o de imagen (PNG, JPG, etc.).");
-      }
+      processEnteredFile(file);
     }
   };
 
+  // Forzar remuestreo de preview manual si modifican cosas
   const executePreview = () => {
     if (!csvText) return;
-    const mapToUse = platform === "generic" ? customMap : undefined;
-    const { trades: parsed, errors } = parseCSVToTrades(csvText, platform, mapToUse);
-    setParsedResult(parsed);
-    setParseErrors(errors);
+
+    if (platform === "ninjatrader") {
+      try {
+        const rawTrades = importFromNinjaTrader(csvText);
+        const formatted = rawTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+        setParsedResult(formatted);
+      } catch (err: any) {
+        setParseErrors(["Fallo al parsear NinjaTrader CSV: " + err.message]);
+      }
+    } 
+    else if (platform === "metatrader") {
+      try {
+        const isMT5 = csvText.toLowerCase().includes("metatrader 5") || csvText.toLowerCase().includes("position");
+        const rawTrades = isMT5 ? importFromMT5(csvText, fileName) : importFromMT4(csvText, fileName);
+        const formatted = rawTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+        setParsedResult(formatted);
+      } catch (err: any) {
+        setParseErrors(["Fallo al parsear MetaTrader Report: " + err.message]);
+      }
+    } 
+    else if (platform === "tradingview") {
+      try {
+        const rawTrades = importFromTradingView(csvText);
+        const formatted = rawTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+        setParsedResult(formatted);
+      } catch (err: any) {
+        setParseErrors(["Fallo al parsear TradingView CSV: " + err.message]);
+      }
+    } 
+    else if (platform === "generic") {
+      const mapToUse = customMap;
+      const { trades: parsed, errors } = parseCSVToTrades(csvText, platform, mapToUse);
+      // Mapear el output de parseCSVToTrades que ya devuelve estructura de app
+      setParsedResult(parsed);
+      setParseErrors(errors);
+    }
   };
 
-  // Find if a parsed trade is a potential duplicate of an existing trade
+  // Conectar vía API de Tradovate REST
+  const handleTradovateSync = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!tradovateUser || !tradovatePass) {
+      alert("Por favor ingresá tu nombre de usuario y contraseña de Tradovate.");
+      return;
+    }
+
+    setIsSyncingTradovate(true);
+    setParseErrors([]);
+    setFileName("Tradovate API Sincronizada");
+    setImageParseError("");
+    setParsedResult([]);
+
+    try {
+      // Si el usuario pone "demo" o "test", mandamos appId SIMULATE para levantar simulación impecable
+      const username = tradovateUser.trim();
+      const sendAppId = (username === "demo" || username === "test") ? "SIMULATE" : tradovateAppId;
+
+      const normalizedTrades = await importFromTradovate({
+        username: username,
+        password: tradovatePass,
+        appId: sendAppId || "TradyumDevApp",
+        appVersion: tradovateAppVersion || "1.0.0",
+        appName: tradovateAppName || "Tradyum",
+        isLive: tradovateIsLive
+      });
+
+      if (normalizedTrades && normalizedTrades.length > 0) {
+        const formatted = normalizedTrades.map((t: any, idx: number) => mapNormalizedToTradyumTrade(t, idx, targetAccountId));
+        setParsedResult(formatted);
+      } else {
+        throw new Error("No se encontraron ejecuciones cerradas/fills en Tradovate para este rango.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setImageParseError(err.message || "Error al conectar con la API de Tradovate. Revisá las credenciales o usá 'demo' para simulación.");
+      setFileName("");
+    } finally {
+      setIsSyncingTradovate(false);
+    }
+  };
+
+  // Autofill para demo de Tradovate
+  const handleAutofillTradovateDemo = () => {
+    setTradovateUser("demo");
+    setTradovatePass("password_demo_123");
+    setTradovateAppId("SIMULATE");
+    setTradovateIsLive(false);
+  };
+
+  // Encontrar duplicados
   const checkDuplicate = (trade: Trade) => {
     return existingTrades.some(t => {
-      // If of the same account, symbol, date and same pnl
       const sameAcc = t.accountId === targetAccountId;
       const sameDate = t.date === trade.date;
       const sameSym = t.symbol.toUpperCase() === trade.symbol.toUpperCase();
@@ -248,7 +440,7 @@ export default function ImportTradesView({
     });
   };
 
-  // Stats computed from parsed trades
+  // Estadísticas del preview
   const stats = useMemo(() => {
     if (parsedResult.length === 0) return null;
     
@@ -283,18 +475,18 @@ export default function ImportTradesView({
   };
 
   return (
-    <div className="bg-[#140f26]/90 border border-white/5 rounded-2xl p-6 shadow-2xl space-y-6" id="view-import-trades">
-      {/* Header Info */}
+    <div className="bg-[#140f26]/95 border border-white/5 rounded-2xl p-6 shadow-2xl space-y-6" id="view-import-trades">
+      {/* Encabezado */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-white/5">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="p-2 bg-indigo-600/10 rounded-xl text-indigo-400">
+            <span className="p-2 bg-indigo-600/20 rounded-xl text-indigo-400">
               <Upload className="w-5 h-5" />
             </span>
             <h2 className="text-lg font-bold text-white font-display">Sincronizador automático de Trades</h2>
           </div>
           <p className="text-xs text-indigo-200/60 mt-1">
-            Sincronizá tu historial vía exportaciones de brokers (NinjaTrader, Tradovate, MetaTrader, TradingView) o cargá una captura de pantalla (JPG/PNG).
+            Sincronizá tu historial vía exportaciones de brokers o conectando directamente por APIs REST o capturas de pantalla.
           </p>
         </div>
         
@@ -307,18 +499,19 @@ export default function ImportTradesView({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left config side (columns 5) */}
+        {/* Lado Izquierdo (Configuración de Broker) */}
         <div className="lg:col-span-5 space-y-5">
-          {/* Platform selection card */}
+          
+          {/* Selector de Plataforma */}
           <div className="bg-slate-950/40 border border-white/5 p-4 rounded-xl space-y-4">
             <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
               1. Seleccioná tu plataforma o broker
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
               {[
                 { id: "ninjatrader", label: "NinjaTrader" },
-                { id: "tradovate", label: "Tradovate" },
-                { id: "metatrader", label: "MetaTrader 4/5" },
+                { id: "tradovate", label: "Tradovate API" },
+                { id: "metatrader", label: "MT4 / MT5" },
                 { id: "tradingview", label: "TradingView" },
                 { id: "generic", label: "Otro (Genérico)" }
               ].map((plat) => (
@@ -327,10 +520,13 @@ export default function ImportTradesView({
                   onClick={() => {
                     setPlatform(plat.id as BrokerPlatform);
                     setParsedResult([]);
+                    setCsvText("");
+                    setFileName("");
+                    setImageParseError("");
                   }}
                   className={`px-3 py-2.5 text-xs font-semibold rounded-lg text-center transition-all border ${
                     platform === plat.id
-                      ? "bg-indigo-600/10 text-indigo-300 border-indigo-500/30 shadow-md"
+                      ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-md"
                       : "bg-[#16122d] text-slate-400 border-white/5 hover:border-white/10 hover:text-white"
                   }`}
                 >
@@ -340,79 +536,212 @@ export default function ImportTradesView({
             </div>
           </div>
 
-          {/* Drag & drop upload area */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => { if (!isParsingImage) fileInputRef.current?.click(); }}
-            className={`cursor-pointer group flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 text-center transition-all min-h-[160px] relative ${
-              isDragging
-                ? "border-indigo-500 bg-indigo-500/10 text-white"
-                : fileName
-                ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 text-slate-300"
-                : "border-slate-800 bg-[#0d0a16]/50 hover:bg-[#140f28]/60 hover:border-slate-705 text-slate-400"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv, image/*, .png, .jpg, .jpeg, .webp, .gif"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            {isParsingImage ? (
-              <div className="space-y-3">
-                <div className="flex justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-indigo-300">
-                    Procesando imagen con IA de Gemini...
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Detectando trades y estructuras del screenshot
-                  </p>
-                </div>
+          {/* Área de Entrada Tradovate API o Uploader CSV/Report */}
+          {platform === "tradovate" ? (
+            <form onSubmit={handleTradovateSync} className="bg-slate-950/40 border border-white/5 p-4 rounded-xl space-y-3.5 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-indigo-400" />
+                  Conexión Tradovate API
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAutofillTradovateDemo}
+                  className="bg-indigo-650/15 hover:bg-indigo-650/25 text-indigo-300 border border-indigo-500/20 rounded px-2 py-0.5 text-[10px] font-bold"
+                >
+                  Cargar cuenta DEMO de Test
+                </button>
               </div>
-            ) : fileName ? (
+
               <div className="space-y-2">
-                <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 inline-block">
-                  <FileText className="w-7 h-7" />
-                </div>
                 <div>
-                  <p className="text-xs font-bold text-white max-w-[240px] truncate mx-auto">
-                    {fileName}
-                  </p>
-                  <p className="text-[10px] text-emerald-400 mt-0.5 font-medium">
-                    {fileName.endsWith(".csv") ? "¡Archivo CSV cargado con éxito!" : "¡Captura de pantalla procesada con éxito!"}
-                  </p>
+                  <label className="block text-slate-400 mb-1 font-semibold">Usuario de Tradovate*</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Usuario de Tradovate"
+                    value={tradovateUser}
+                    onChange={(e) => setTradovateUser(e.target.value)}
+                    className="w-full bg-[#16122d] border border-white/10 rounded px-2.5 py-1.5 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold">Contraseña*</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Contraseña"
+                    value={tradovatePass}
+                    onChange={(e) => setTradovatePass(e.target.value)}
+                    className="w-full bg-[#16122d] border border-white/10 rounded px-2.5 py-1.5 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-semibold">App ID (ID de API)</label>
+                    <input
+                      type="text"
+                      placeholder="TradyumApp"
+                      value={tradovateAppId}
+                      onChange={(e) => setTradovateAppId(e.target.value)}
+                      className="w-full bg-[#16122d] border border-white/10 rounded px-2.5 py-1.5 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-semibold">App Version</label>
+                    <input
+                      type="text"
+                      placeholder="1.0.0"
+                      value={tradovateAppVersion}
+                      onChange={(e) => setTradovateAppVersion(e.target.value)}
+                      className="w-full bg-[#16122d] border border-white/10 rounded px-2.5 py-1.5 text-white font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-slate-450 font-semibold">Entorno Tradovate:</span>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                      <input
+                        type="radio"
+                        checked={!tradovateIsLive}
+                        onChange={() => setTradovateIsLive(false)}
+                        className="text-indigo-600 bg-slate-900 border-white/10"
+                      />
+                      Demo
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-350">
+                      <input
+                        type="radio"
+                        checked={tradovateIsLive}
+                        onChange={() => setTradovateIsLive(true)}
+                        className="text-indigo-600 bg-slate-900 border-white/10"
+                      />
+                      Real / Live
+                    </label>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="p-3 bg-indigo-600/5 text-indigo-400 group-hover:bg-indigo-600/10 rounded-xl inline-block transition-all">
-                  <Upload className="w-7 h-7 stroke-[2]" />
+
+              <button
+                type="submit"
+                disabled={isSyncingTradovate}
+                className="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 disabled:text-slate-500 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isSyncingTradovate ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                    Sincronizando por REST API...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Autenticar y Sincronizar Fills
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Drag & Drop Standard Uploader */
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => { if (!isParsingImage) fileInputRef.current?.click(); }}
+              className={`cursor-pointer group flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 text-center transition-all min-h-[160px] relative ${
+                isDragging
+                  ? "border-indigo-500 bg-indigo-500/10 text-white"
+                  : fileName
+                  ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 text-slate-300"
+                  : "border-slate-800 bg-[#0d0a16]/50 hover:bg-[#140f28]/60 hover:border-slate-700 text-slate-400"
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv, .html, .htm, image/*, .png, .jpg, .jpeg, .webp, .gif"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              {isParsingImage ? (
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-indigo-300">
+                      OCR Multimodal Inteligente...
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Gemini Flash leyéndose la captura de pantalla
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-200">
-                    Arrastrá tu CSV o Imagen acá o hacé click para seleccionar
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Soporta archivos .csv o capturas de pantalla (.jpg, .png, .webp)
-                  </p>
+              ) : fileName ? (
+                <div className="space-y-2">
+                  <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 inline-block font-sans">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white max-w-[240px] truncate mx-auto">
+                      {fileName}
+                    </p>
+                    <p className="text-[10px] text-emerald-400 mt-0.5 font-medium">
+                      {fileName.match(/\.(png|jpe?g|webp|gif)$/i) ? "¡Imagen de trades decodificada!" : "¡Archivo cargado y procesado con éxito!"}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 bg-indigo-650/5 text-indigo-400 group-hover:bg-indigo-600/10 rounded-xl inline-block transition-all">
+                    <Upload className="w-7 h-7 stroke-[2]" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-200">
+                      Arrastrá acá tu archivo .csv, .html o Imagen de trades
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-1 leading-normal max-w-xs mx-auto">
+                      {platform === "metatrader" 
+                        ? "Soporta reportes HTML creados con 'Save as Report' en MT4/MT5 o archivos CSV."
+                        : "Soporta exportaciones CSV del broker o capturas de pantalla de tu plataforma."}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ayuda del Broker Seleccionado */}
+          <div className="bg-[#100c22]/60 border border-white/5 rounded-xl p-3.5 space-y-1.5 text-slate-400 text-[11px] leading-relaxed">
+            <span className="font-extrabold text-white text-xs block">💡 Instrucciones de exportación:</span>
+            {platform === "ninjatrader" && (
+              <p>En NinjaTrader: Ve a la pestaña <span className="text-indigo-400 font-bold">Trade Performance</span> &gt; Clic derecho en el gráfico/grilla &gt; Seleccioná <span className="text-indigo-400 font-semibold">Export</span> y elegí el formato CSV estándar.</p>
+            )}
+            {platform === "tradovate" && (
+              <p>Cargá nuestro acceso interactivo API. En modo desarrollo podés usar el botón <span className="text-indigo-300 font-semibold">Cargar cuenta DEMO</span> para realizar pruebas seguras sin credenciales corporativas.</p>
+            )}
+            {platform === "metatrader" && (
+              <p>Fácil: Sube directamente el archivo <span className="text-indigo-400 font-bold">.html</span>. En MetaTrader, ve a <span className="text-indigo-300 font-semibold">Account History</span> &gt; Clic Derecho &gt; Seleccioná <span className="text-indigo-300 font-semibold">Save as Report</span>.</p>
+            )}
+            {platform === "tradingview" && (
+              <p>En TradingView: Abrí la pestaña inferior <span className="text-indigo-400 font-bold">Lista de operaciones</span> de tu bridge o papel &gt; Presioná el botón de <span className="text-indigo-300 font-semibold">Exportar (ícono de descarga)</span> arriba a la derecha de la pestaña.</p>
+            )}
+            {platform === "generic" && (
+              <p>Cualquier CSV estructurado. Abajo podés mapear a mano las posiciones de tus columnas en caso de formatos atípicos.</p>
             )}
           </div>
 
           {imageParseError && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-[11px] text-rose-400 mt-2 font-mono">
-              ⚠️ Error de lectura: {imageParseError}
+            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-[11px] text-rose-400 font-mono mt-2 flex gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>⚠️ Error: {imageParseError}</span>
             </div>
           )}
 
-          {/* Dynamic column mapping fields for Generic mode */}
+          {/* Manual mapper para Generic CSV */}
           {platform === "generic" && availableHeaders.length > 0 && (
             <div className="bg-[#0b0816]/70 border border-white/5 rounded-xl p-4 space-y-3.5 animate-in slide-in-from-top-3 duration-250">
               <div className="flex items-center gap-1.5 pb-2 border-b border-white/5">
@@ -421,7 +750,7 @@ export default function ImportTradesView({
               </div>
               
               <div className="space-y-2.5 text-xs">
-                {/* Date/Time mapper */}
+                {/* Date/Time */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-slate-400 font-medium shrink-0">Fecha / Hora *</span>
                   <select
@@ -434,7 +763,7 @@ export default function ImportTradesView({
                   </select>
                 </div>
 
-                {/* Symbol mapper */}
+                {/* Symbol */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-slate-400 font-medium shrink-0">Símbolo o Activo *</span>
                   <select
@@ -447,9 +776,9 @@ export default function ImportTradesView({
                   </select>
                 </div>
 
-                {/* P&L Net mapping */}
+                {/* Net P&L */}
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-400 font-medium shrink-0">Ganancia/Pérdida (PnL) *</span>
+                  <span className="text-slate-400 font-medium shrink-0">PnL Neto *</span>
                   <select
                     value={customMap.pnlCol}
                     onChange={(e) => setCustomMap({ ...customMap, pnlCol: e.target.value })}
@@ -460,43 +789,42 @@ export default function ImportTradesView({
                   </select>
                 </div>
 
-                {/* Optionals toggle bar */}
-                <div className="pt-1.5 border-t border-white/5 space-y-2 text-[11px]">
-                  <p className="text-slate-500 font-bold italic">Opcionales (mejoran análisis)</p>
+                <div className="pt-2 border-t border-white/5 space-y-2 text-[11px]">
+                  <p className="text-indigo-400 font-bold italic">Opcionales (ajustan visualización):</p>
                   
-                  {/* Action mapper */}
+                  {/* Action */}
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-400">Acción (Compra/Venta)</span>
+                    <span className="text-slate-400">Tipo (Compra/Venta)</span>
                     <select
                       value={customMap.actionCol || ""}
                       onChange={(e) => setCustomMap({ ...customMap, actionCol: e.target.value })}
-                      className="bg-slate-950/50 border border-white/10 rounded px-2 py-0.5 text-white text-[11px] max-w-[165px]"
+                      className="bg-slate-950/50 border border-white/10 rounded px-2 py-0.5 text-white text-[11px] max-w-[160px]"
                     >
                       <option value="">Ninguno</option>
                       {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                   </div>
 
-                  {/* Qty mapper */}
+                  {/* Quantity */}
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-400">Cantidad (Contratos/Lotes)</span>
+                    <span className="text-slate-400">Cantidad (Tamaño)</span>
                     <select
                       value={customMap.qtyCol || ""}
                       onChange={(e) => setCustomMap({ ...customMap, qtyCol: e.target.value })}
-                      className="bg-slate-950/50 border border-white/10 rounded px-2 py-0.5 text-white text-[11px] max-w-[165px]"
+                      className="bg-slate-950/50 border border-white/10 rounded px-2 py-0.5 text-white text-[11px] max-w-[160px]"
                     >
                       <option value="">Ninguno</option>
                       {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                   </div>
 
-                  {/* Commission mapper */}
+                  {/* Commissions */}
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-400">Comisiones</span>
                     <select
                       value={customMap.commCol || ""}
                       onChange={(e) => setCustomMap({ ...customMap, commCol: e.target.value })}
-                      className="bg-slate-950/50 border border-white/10 rounded px-2 py-0.5 text-white text-[11px] max-w-[165px]"
+                      className="bg-slate-950/50 border border-white/10 rounded px-2 py-0.5 text-white text-[11px] max-w-[160px]"
                     >
                       <option value="">Ninguno</option>
                       {availableHeaders.map(h => <option key={h} value={h}>{h}</option>)}
@@ -507,43 +835,52 @@ export default function ImportTradesView({
             </div>
           )}
 
-          {/* Action to preview */}
-          <button
-            disabled={!csvText}
-            onClick={executePreview}
-            className={`w-full py-2.5 rounded-lg text-xs font-bold transition-all ${
-              csvText
-                ? "bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white cursor-pointer shadow-lg shadow-indigo-600/10"
-                : "bg-[#18142b] text-slate-500 cursor-not-allowed"
-            }`}
-          >
-            Vista Previa de Trades
-          </button>
+          {/* Botón de Vista Previa manual si usan CSV genérico cargado sin mapear */}
+          {platform === "generic" && (
+            <button
+              disabled={!csvText}
+              onClick={executePreview}
+              className={`w-full py-2.5 rounded-lg text-xs font-bold transition-all ${
+                csvText
+                  ? "bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white cursor-pointer shadow-lg"
+                  : "bg-[#18142b] text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              Generar Vista Previa de CSV
+            </button>
+          )}
+
         </div>
 
-        {/* Right side data list & importer confirm (columns 7) */}
+        {/* Lado Derecho (Detalle del Preview e Importador) */}
         <div className="lg:col-span-7 space-y-4">
           {parsedResult.length === 0 ? (
             <div className="bg-[#0b0816]/40 border border-slate-900 rounded-xl p-12 text-center flex flex-col items-center justify-center min-h-[380px]">
               <HelpCircle className="w-10 h-10 text-slate-600 animate-pulse mb-3" />
-              <p className="text-xs font-bold text-slate-300">No hay trades cargados en la vista previa</p>
+              <p className="text-xs font-bold text-slate-300">Vista previa libre de trades</p>
               <p className="text-[11px] text-slate-500 max-w-sm mt-1.5 leading-relaxed">
-                Seleccioná tu broker, arrastrá tu exportación de trades y hacé click en el botón "Vista Previa" para analizarlos.
+                Seleccioná tu broker o cargá capturas de pantalla, cargá la información e inmediatamente verás los resultados procesados acá.
               </p>
             </div>
           ) : (
-            <div className="space-y-4 animate-in fade-in duration-300">
-              {/* Target Account selector & Import choices block */}
+            <div className="space-y-4 animate-in fade-in duration-350">
+              
+              {/* Opciones De Cuenta Destino y Modo de Fusión */}
               <div className="bg-slate-950/50 border border-white/5 rounded-xl p-4.5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Account Selection */}
+                
+                {/* Selector de cuenta Tradyum */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                    <Wallet className="w-3.5 h-3.5 text-indigo-400" /> Cuenta destino:
+                    <Wallet className="w-3.5 h-3.5 text-indigo-400" /> Cuenta destino en Tradyum:
                   </label>
                   <select
                     value={targetAccountId}
-                    onChange={(e) => setTargetAccountId(e.target.value)}
-                    className="w-full bg-[#16122d] border border-white/10 rounded-lg py-2 px-3 text-white text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                    onChange={(e) => {
+                      setTargetAccountId(e.target.value);
+                      // Ajustar cuenta en los trades ya pre-procesados
+                      setParsedResult(prev => prev.map(t => ({ ...t, accountId: e.target.value })));
+                    }}
+                    className="w-full bg-[#16122d] border border-white/10 rounded-lg py-2 px-3 text-white text-xs font-semibold focus:outline-none"
                   >
                     {accounts.map((acc) => (
                       <option key={acc.id} value={acc.id}>
@@ -553,20 +890,20 @@ export default function ImportTradesView({
                   </select>
                 </div>
 
-                {/* Import method choice */}
+                {/* Modo de importación */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
-                    Modo del Período detectado:
+                    Modo del Período cargado:
                   </label>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <button
                       onClick={() => setImportMode("append")}
                       className={`py-2 px-2.5 rounded-lg border text-center font-bold tracking-tight transition-all ${
                         importMode === "append"
-                          ? "bg-indigo-600/10 text-indigo-300 border-indigo-500/30"
-                          : "bg-[#16122d] text-slate-400 border-white/5 hover:border-white/10 hover:text-white"
+                          ? "bg-indigo-600/15 text-indigo-300 border-indigo-500/35"
+                          : "bg-[#16122d] text-slate-400 border-white/5 hover:border-white/10"
                       }`}
-                      title="Suma los trades sin alterar los ya agregados del período"
+                      title="Suma los trades sin alterar los ya registrados"
                     >
                       Sumar a existentes
                     </button>
@@ -574,10 +911,10 @@ export default function ImportTradesView({
                       onClick={() => setImportMode("replace")}
                       className={`py-2 px-2.5 rounded-lg border text-center font-bold tracking-tight transition-all ${
                         importMode === "replace"
-                          ? "bg-rose-500/10 text-rose-300 border-rose-500/20"
-                          : "bg-[#16122d] text-slate-450 border-white/5 hover:border-white/10 hover:text-white"
+                          ? "bg-rose-500/15 text-rose-300 border-rose-500/25"
+                          : "bg-[#16122d] text-slate-450 border-white/5 hover:border-white/10"
                       }`}
-                      title="Elimina trades existentes de la cuenta en ese rango de fechas antes de adherir los nuevos"
+                      title="Elimina trades de este mismo rango de fechas en la cuenta antes de importar los nuevos"
                     >
                       Reemplazar Período
                     </button>
@@ -585,103 +922,102 @@ export default function ImportTradesView({
                 </div>
               </div>
 
-              {/* Stats summary banner */}
+              {/* Banner de Ajuste Diagnóstico */}
               {stats && (
-                <div className="bg-[#1f1737] border border-indigo-505/20 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-[#1f1737] border border-indigo-500/20 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
                   <div className="space-y-1">
-                    <p className="text-xs font-extrabold text-white">
-                      Resumen del Sincronizador de Períodos:
+                    <p className="font-extrabold text-white">
+                      Resumen del Período detectado:
                     </p>
-                    <div className="text-[11px] text-indigo-200/70 space-y-0.5">
+                    <div className="text-[11px] text-indigo-200/70 space-y-0.5 leading-normal">
                       <p>
                         📅 Se detectaron <span className="text-white font-bold">{stats.count}</span> trades entre <span className="text-indigo-300 font-bold">{stats.minDate}</span> y <span className="text-indigo-300 font-bold">{stats.maxDate}</span>
                       </p>
                       <p>
-                        💵 Ganancia acumulada de estos trades:{" "}
+                        💵 PnL neto combinado:{" "}
                         <span className={`font-bold ${stats.totalPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                           {stats.totalPnl >= 0 ? `$${stats.totalPnl.toFixed(2)}` : `-$${Math.abs(stats.totalPnl).toFixed(2)}`}
                         </span>
                       </p>
                       {stats.duplicateCount > 0 && (
-                        <p className="text-amber-400 flex items-center gap-1 font-semibold text-[10px]">
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          Se detectaron {stats.duplicateCount} posibles duplicados en esta cuenta.
+                        <p className="text-amber-400 flex items-center gap-1 font-semibold text-[10px] mt-1">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          Se cruzaron {stats.duplicateCount} registros duplicados ya agregados hoy.
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Duplicate skip config */}
                   {stats.duplicateCount > 0 && (
-                    <div className="flex items-center gap-1.5 self-center">
+                    <div className="flex items-center gap-1.5 self-center bg-slate-950/45 p-2 rounded-lg border border-white/5">
                       <input
                         type="checkbox"
-                        id="skip-dupes-check"
+                        id="skip-dupes"
                         checked={skipDuplicates}
                         onChange={(e) => setSkipDuplicates(e.target.checked)}
-                        className="rounded border-white/10 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900 bg-slate-900 w-3.5 h-3.5 cursor-pointer"
+                        className="rounded border-white/10 text-indigo-650 bg-slate-900 w-3.5 h-3.5 cursor-pointer"
                       />
-                      <label htmlFor="skip-dupes-check" className="text-[11px] text-slate-300 font-bold select-none cursor-pointer">
-                        Omitir duplicados marcados (Recomendado)
+                      <label htmlFor="skip-dupes" className="text-[10px] text-slate-300 font-bold select-none cursor-pointer">
+                        Omitir duplicados (Recomendado)
                       </label>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Preview scroll list */}
+              {/* Planilla de Vista Previa */}
               <div className="space-y-1.5">
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
-                  Lista de vista previa de trades detectados
+                  Celdas de trades detectados listos para importar
                 </span>
                 
                 <div className="bg-[#0b0817] border border-white/5 rounded-xl overflow-hidden max-h-[290px] overflow-y-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#1b1733] text-slate-400 font-semibold sticky top-0">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-[#1b1733] text-slate-400 font-semibold sticky top-0 text-[10px] uppercase">
                       <tr>
-                        <th className="py-2.5 px-3.5 text-[10px] uppercase">Fecha/Hora</th>
-                        <th className="py-2.5 px-2 text-[10px] uppercase">Instrumento</th>
-                        <th className="py-2.5 px-2 text-[10px] uppercase">Acción/Col</th>
-                        <th className="py-2.5 px-3 text-[10px] uppercase text-right">Monto (PnL)</th>
-                        <th className="py-2.5 px-3 text-[10px] uppercase text-center">Estado</th>
+                        <th className="py-2.5 px-3.5">Fecha</th>
+                        <th className="py-2.5 px-2">Activo</th>
+                        <th className="py-2.5 px-2">Sentido</th>
+                        <th className="py-2.5 px-3 text-right">PnL Neto</th>
+                        <th className="py-2.5 px-3 text-center">Estado</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5 font-mono">
+                    <tbody className="divide-y divide-white/5 font-mono text-[11px]">
                       {parsedResult.map((trade, idx) => {
                         const isDup = checkDuplicate(trade);
-                        let rowClass = "text-slate-350 bg-slate-950/15";
+                        let rowClass = "text-slate-300";
                         let tagLabel = "Listo";
                         let tagClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
                         
                         if (isDup) {
-                          rowClass = "bg-amber-950/10 text-amber-100";
+                          rowClass = "bg-amber-950/10 text-amber-200/85";
                           tagLabel = skipDuplicates ? "Omitido" : "Duplicado";
-                          tagClass = "bg-amber-500/10 text-amber-400 border border-amber-500/25";
+                          tagClass = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
                         }
 
                         return (
                           <tr key={trade.id || idx} className={`${rowClass} hover:bg-white/2 transition-colors`}>
-                            <td className="py-2 px-3.5 text-slate-300">
-                              <span className="block font-semibold">{trade.date}</span>
-                              <span className="text-[10px] text-slate-450">{trade.time}</span>
+                            <td className="py-2 px-3.5">
+                              <span className="block font-semibold text-slate-200">{trade.date}</span>
+                              <span className="text-[10px] text-slate-500 font-medium">{trade.time}</span>
                             </td>
                             <td className="py-2 px-2">
-                              <span className="bg-[#24203a] text-slate-100 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                              <span className="bg-[#24203a] text-indigo-200 font-bold px-1.5 py-0.5 rounded text-[10px] border border-white/5">
                                 {trade.symbol}
                               </span>
                             </td>
-                            <td className="py-2 px-2 text-[11px] font-sans">
+                            <td className="py-2 px-2 font-sans font-bold">
                               {trade.action === TradeAction.BUY ? (
-                                <span className="text-emerald-500 font-bold">COMPRA ({trade.quantity})</span>
+                                <span className="text-emerald-500">COMPRA ({trade.quantity})</span>
                               ) : (
-                                <span className="text-rose-500 font-bold font-sans">VENTA ({trade.quantity})</span>
+                                <span className="text-rose-500">VENTA ({trade.quantity})</span>
                               )}
                             </td>
                             <td className={`py-2 px-3 text-right font-extrabold ${trade.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                               {trade.pnl >= 0 ? `$${trade.pnl.toFixed(2)}` : `-$${Math.abs(trade.pnl).toFixed(2)}`}
                             </td>
                             <td className="py-2 px-3 text-center">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase ${tagClass}`}>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase ${tagClass}`}>
                                 {tagLabel}
                               </span>
                             </td>
@@ -693,44 +1029,45 @@ export default function ImportTradesView({
                 </div>
               </div>
 
-              {/* Parse error notifications lists */}
+              {/* Alertas de Advertencia en el Parseo */}
               {parseErrors.length > 0 && (
-                <div className="bg-rose-950/20 border border-rose-500/10 rounded-xl p-3 text-[11px] text-rose-300 space-y-1">
+                <div className="bg-rose-950/20 border border-rose-500/15 rounded-xl p-3 text-[11px] text-rose-300 space-y-1">
                   <p className="font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> Hubo advertencias al procesar:
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> Registro de alertas de formato:
                   </p>
                   <ul className="list-disc pl-4.5 space-y-0.5 font-mono">
-                    {parseErrors.slice(0, 4).map((err, idx) => (
+                    {parseErrors.slice(0, 3).map((err, idx) => (
                       <li key={idx}>{err}</li>
                     ))}
-                    {parseErrors.length > 4 && <li>Y {parseErrors.length - 4} fallas de formato más.</li>}
+                    {parseErrors.length > 3 && <li>Y {parseErrors.length - 3} advertencias adicionales.</li>}
                   </ul>
                 </div>
               )}
 
-              {/* Double Confirm actions */}
+              {/* Botonera de Confirmación */}
               <div className="flex items-center justify-end gap-3 pt-3">
                 {onCancel && (
                   <button
                     onClick={onCancel}
-                    className="bg-[#121021] hover:bg-slate-900 border border-white/5 py-2 px-4 rounded-lg text-xs font-semibold text-slate-300 active:scale-95 transition-all cursor-pointer"
+                    className="bg-[#121021] hover:bg-slate-900 border border-white/5 py-2.5 px-4 rounded-lg text-xs font-semibold text-slate-300 active:scale-95 transition-all cursor-pointer"
                   >
-                    Volver Al Dashboard
+                    Volver Al Listado
                   </button>
                 )}
                 
                 <button
                   disabled={progressPct >= 100}
                   onClick={handleImportClick}
-                  className={`py-2 px-6 rounded-lg text-xs font-bold transition-all shadow-lg flex items-center gap-1.5 ${
+                  className={`py-2.5 px-6 rounded-lg text-xs font-bold transition-all shadow-lg flex items-center gap-1.5 ${
                     progressPct >= 100
                       ? "bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed shadow-none"
-                      : "bg-[#2563eb] hover:bg-blue-700 active:scale-95 text-white shadow-blue-500/10 cursor-pointer"
+                      : "bg-[#2563eb] hover:bg-blue-700 active:scale-95 text-white shadow-blue-500/15 cursor-pointer"
                   }`}
                 >
-                  <CheckCheck className="w-4 h-4" /> Importar {parsedResult.filter(t => !checkDuplicate(t) || !skipDuplicates).length} Trades
+                  <CheckCheck className="w-4 h-4" /> Importar {parsedResult.filter(t => !checkDuplicate(t) || !skipDuplicates).length} Trades a Tradyum
                 </button>
               </div>
+
             </div>
           )}
         </div>

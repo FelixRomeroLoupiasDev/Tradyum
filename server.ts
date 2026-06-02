@@ -5,7 +5,6 @@
 
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -276,6 +275,143 @@ app.post("/api/ai/parse-image-trades", async (req, res) => {
   }
 });
 
+// API: Tradovate API Proxy Authentication (OAuth / Name URL)
+app.post("/api/tradovate/auth", async (req, res) => {
+  try {
+    const { username, password, appId, appVersion, appName, isLive } = req.body;
+
+    if (!username || !password) {
+      res.status(400).json({ error: "Faltan nombre de usuario o contraseña en la petición." });
+      return;
+    }
+
+    // Soporte para simulación interactiva / demostraciones en AI Studio
+    if (username.toLowerCase().trim() === "demo" || username.toLowerCase().trim() === "test" || appId === "SIMULATE" || !process.env.GEMINI_API_KEY) {
+      res.json({
+        accessToken: "simulated_token_" + Math.random().toString(36).substr(2, 9),
+        expirationTime: new Date(Date.now() + 3600000).toISOString(),
+        username: username,
+        isDemo: true
+      });
+      return;
+    }
+
+    const baseUrl = isLive ? "https://live.tradovateapi.com/v1" : "https://demo.tradovateapi.com/v1";
+    
+    const response = await fetch(`${baseUrl}/auth/accessTokenRequest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: username,
+        password: password,
+        appId: appId || appName || "TradyumDevApp",
+        appVersion: appVersion || "1.0.0"
+      })
+    });
+
+    if (!response.ok) {
+      const errTxt = await response.text();
+      throw new Error(errTxt || "Credenciales incorrectas o API de Tradovate fuera de servicio.");
+    }
+
+    const data = await response.json();
+    res.json({
+      accessToken: data.accessToken,
+      expirationTime: data.expirationTime,
+      isDemo: !isLive
+    });
+
+  } catch (error: any) {
+    console.error("Tradovate Auth Proxy Error:", error);
+    res.status(400).json({ error: error.message || "Error al conectar con la API de Tradovate." });
+  }
+});
+
+// API: Tradovate API Proxy Fills Synchronizer
+app.post("/api/tradovate/fills", async (req, res) => {
+  try {
+    const { token, isLive } = req.body;
+
+    if (!token) {
+      res.status(400).json({ error: "Token de Tradovate ausente o expirado." });
+      return;
+    }
+
+    // Simulador de trades si el token es para modo Demo
+    if (token.startsWith("simulated_token_")) {
+      const simulatedTime1 = new Date();
+      simulatedTime1.setHours(9, 30, 0);
+      const simulatedTime2 = new Date();
+      simulatedTime2.setHours(10, 15, 0);
+      const simulatedTime3 = new Date();
+      simulatedTime3.setHours(11, 45, 0);
+
+      const simulatedFills = [
+        {
+          id: 70291,
+          orderId: 501292,
+          contractId: 88510,
+          timestamp: simulatedTime1.toISOString(),
+          activeSide: "Buy",
+          price: 18450.25,
+          qty: 2,
+          pnl: 345.50,
+          accountName: "DEMO_TRADYUM_FUT",
+          symbol: "NQM6"
+        },
+        {
+          id: 70292,
+          orderId: 501293,
+          contractId: 88510,
+          timestamp: simulatedTime2.toISOString(),
+          activeSide: "Sell",
+          price: 18465.75,
+          qty: 1,
+          pnl: -140.00,
+          accountName: "DEMO_TRADYUM_FUT",
+          symbol: "ESM6"
+        },
+        {
+          id: 70293,
+          orderId: 501294,
+          contractId: 88512,
+          timestamp: simulatedTime3.toISOString(),
+          activeSide: "Buy",
+          price: 74.50,
+          qty: 5,
+          pnl: 520.00,
+          accountName: "DEMO_TRADYUM_FUT",
+          symbol: "CL"
+        }
+      ];
+      res.json({ fills: simulatedFills });
+      return;
+    }
+
+    const baseUrl = isLive ? "https://live.tradovateapi.com/v1" : "https://demo.tradovateapi.com/v1";
+
+    const response = await fetch(`${baseUrl}/fill/list`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      const errTxt = await response.text();
+      throw new Error(errTxt || "Imposible bajar ejecuciones de Tradovate.");
+    }
+
+    const fills = await response.json();
+    res.json({ fills });
+
+  } catch (error: any) {
+    console.error("Tradovate Fills Proxy Error:", error);
+    res.status(500).json({ error: error.message || "Fallo en la comunicación con Tradovate." });
+  }
+});
+
 // API: Mercado Pago Subscription Checkout link generation
 app.post("/api/payment/checkout-link", async (req, res) => {
   try {
@@ -525,6 +661,7 @@ function generateHeuristicReport(trades: any[], goal: string) {
 // Vite and static build handling
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
@@ -543,4 +680,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
