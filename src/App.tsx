@@ -167,6 +167,7 @@ export default function App() {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<"limit_30" | "ai_coach" | "stats" | "multi_account" | "export" | "">("");
   const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<{ code: string; message: string; domain?: string } | null>(null);
 
   // Quick form state for new accounts
   const [isNewAccountOptionOpen, setIsNewAccountOptionOpen] = useState(false);
@@ -486,8 +487,17 @@ export default function App() {
   const handleGoogleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login Error: ", error);
+      const errCode = error?.code || "";
+      const errMessage = error?.message || String(error);
+      const domain = window.location.hostname;
+      
+      setAuthError({
+        code: errCode,
+        message: errMessage,
+        domain: domain
+      });
     }
   };
 
@@ -2299,6 +2309,107 @@ export default function App() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Firebase Auth Error Diagnostics Modal */}
+      {authError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" id="auth-error-diagnostics-modal">
+          <div className="w-full max-w-lg bg-[#111318] border border-red-500/30 rounded-2xl overflow-hidden shadow-2xl text-left flex flex-col justify-between">
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <div className="w-10 h-10 bg-red-500/15 border border-red-500/25 text-red-500 rounded-full flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white font-display">
+                    Error de Autenticación de Firebase
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                    Código de Error: {authError.code || "unknown"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                {authError.code === "auth/unauthorized-domain" ? (
+                  <>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      El dominio desde el que estás intentando iniciar sesión (<span className="text-red-400 font-black font-mono bg-red-500/10 px-1.5 py-0.5 rounded">{authError.domain}</span>) no está autorizado en tu consola de Firebase.
+                    </p>
+                    
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 space-y-2">
+                      <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <Info className="w-4 h-4 shrink-0" /> ¿Cómo solucionarlo en 1 minuto?
+                      </h4>
+                      <ol className="text-[11px] text-slate-300 list-decimal pl-4 space-y-1.5 leading-relaxed">
+                        <li>
+                          Entrá a tu <a href="https://console.firebase.google.com/project/tradyum-865e7/authentication/providers" target="_blank" rel="noopener noreferrer" className="text-blue-400 font-bold hover:underline inline-flex items-center gap-0.5">
+                            Consola de Firebase (sección Auth)
+                          </a>.
+                        </li>
+                        <li>
+                          Andá a la pestaña <span className="font-bold text-white">Configuración</span> (Settings) &gt; <span className="font-bold text-white">Dominios autorizados</span> (Authorized domains).
+                        </li>
+                        <li>
+                          Hacé clic en <span className="font-bold text-white">Agregar dominio</span> y agregá:
+                          <div className="mt-1.5 flex flex-col gap-1">
+                            <code className="text-[10px] text-emerald-400 font-black font-mono bg-[#090a0c] px-2 py-1 rounded border border-white/5 w-full select-all">tradyum.vercel.app</code>
+                            {authError.domain && authError.domain !== "tradyum.vercel.app" && authError.domain !== "localhost" && (
+                              <code className="text-[10px] text-sky-400 font-black font-mono bg-[#090a0c] px-2 py-1 rounded border border-white/5 w-full select-all">{authError.domain}</code>
+                            )}
+                          </div>
+                        </li>
+                        <li>
+                          ¡Listo! Volvé a recargar la página y apretá de nuevo "Iniciar sesión con Google".
+                        </li>
+                      </ol>
+                    </div>
+                  </>
+                ) : authError.code === "auth/popup-blocked" ? (
+                  <>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      El navegador bloqueó la ventana emergente de inicio de sesión de Google.
+                    </p>
+                    <div className="bg-[#181920] border border-white/5 rounded-xl p-3.5">
+                      <h4 className="text-xs font-bold text-white mb-1">Solución:</h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Por favor, permití las ventanas emergentes (popups) para este sitio en la barra de direcciones de tu navegador y volvé a intentarlo.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Ha ocurrido un error inesperado al intentar autenticarse con tu proyecto de Firebase.
+                    </p>
+                    <div className="bg-[#181920] border border-white/5 rounded-xl p-3 text-left">
+                      <p className="text-[10.5px] text-red-300 font-mono leading-normal break-all">
+                        {authError.message}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+                <a 
+                  href="https://console.firebase.google.com/project/tradyum-865e7/authentication/providers"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold text-xs py-2.5 px-4 rounded-xl text-center shadow-lg shadow-red-600/10 hover:shadow-red-600/25 transition-all"
+                >
+                  Ir a Consola Firebase
+                </a>
+                <button
+                  onClick={() => setAuthError(null)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs py-2.5 px-4 rounded-xl border border-white/5 transition-all cursor-pointer"
+                >
+                  Ignorar y cerrar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
