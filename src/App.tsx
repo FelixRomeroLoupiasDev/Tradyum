@@ -118,13 +118,18 @@ export default function App() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
-  const [userProfile, setUserProfile] = useState({
+  const [userProfileRaw, setUserProfile] = useState({
     name: "Invitado",
     email: "",
     plan: "Elite", // All features unlocked for free usage by request
     subscriptionId: "",
     mpPreapprovalId: ""
   });
+
+  const userProfile = {
+    ...userProfileRaw,
+    plan: "Elite" as const
+  };
 
   // Selected Day on Calendar
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
