@@ -1,106 +1,85 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-export enum AssetType {
-  STOCK = "Stock",
-  OPTION = "Option",
-  CRYPTO = "Crypto",
-  FOREX = "Forex",
-  FUTURES = "Futures"
-}
-
-export enum TradeAction {
-  BUY = "Buy",
-  SELL = "Sell"
-}
-
-export interface Trade {
+export interface Profile {
   id: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
-  symbol: string;
-  assetType: AssetType;
-  action: TradeAction;
-  quantity: number;
-  entryPrice: number;
-  exitPrice: number;
-  commissions: number;
-  fees: number;
-  setups: string[]; // e.g., "Breakout", "EMA Pullback", etc.
-  mistakes: string[]; // e.g., "FOMO", "Chased Entry", etc.
-  notes: string;
-  pnl: number; // Gross P&L details (Calculated)
-  netPnl: number; // Net P&L details (Calculated as pnl - commissions - fees)
-  status: "Win" | "Loss" | "Flat";
-  accountId?: string;
-  screenshot?: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  timezone: string;
 }
 
-export interface CalendarDaySummary {
-  date: string; // YYYY-MM-DD
-  pnl: number;
-  netPnl: number;
-  tradeCount: number;
-  winCount: number;
-}
-
-export interface DashboardMetrics {
-  totalTrades: number;
-  winningTrades: number;
-  losingTrades: number;
-  flatTrades: number;
-  winRate: number; // in %
-  profitFactor: number;
-  netPnl: number;
-  grossPnl: number;
-  avgWin: number;
-  avgLoss: number;
-  totalCommissions: number;
-  totalFees: number;
-}
-
-export interface SetupPerformance {
-  setup: string;
-  tradeCount: number;
-  winRate: number;
-  netPnl: number;
-}
-
-export interface MistakeFrequency {
-  mistake: string;
-  count: number;
-  totalCost: number; // Net P&L loss attributed to these trades
-}
-
-export type CoachGoal = "breakdowns" | "habits" | "discipline" | "general";
-
-export interface AICoachReport {
-  overallScore: number; // 0-100 score based on discipline
-  summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  tacticalPlan: string[];
-  setupFocus: { setup: string; reason: string }[];
-  disciplineAdvice: string;
-}
+export type AccountType = 'personal' | 'funded' | 'demo' | 'other';
+export type BrokerType = 'ninjatrader' | 'tradovate' | 'mt4' | 'mt5' | 'tradingview' | 'generic';
 
 export interface Account {
   id: string;
+  user_id: string;
   name: string;
-  type: string; // e.g., "Fondeo" | "Demo" | "Real"
-  balance: number;
-  initialBalance: number;
-  status: "Activa" | "Inactiva";
+  type: AccountType;
+  broker: BrokerType;
+  account_number?: string;
+  currency: string;
+  initial_balance: number;
+  current_balance: number;
+  is_active: boolean;
+  color?: string;
+  api_key?: string;
+  api_secret?: string;
 }
 
-export interface JournalEntry {
+export type TradeDirection = 'long' | 'short';
+export type TradeStatus = 'open' | 'closed';
+export type AssetClassType = 'futures' | 'forex' | 'crypto' | 'stocks' | 'options';
+
+export interface Trade {
   id: string;
-  date: string;
-  time: string;
-  title: string;
-  content: string;
-  associatedSymbol?: string;
+  user_id: string;
+  account_id: string;
+  broker_trade_id?: string | null;
+  symbol: string;
+  asset_class: AssetClassType;
+  direction: TradeDirection;
+  entry_price: number;
+  exit_price: number;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  quantity: number;
+  entry_time: string; // ISO String
+  exit_time: string;  // ISO String
+  gross_pnl: number;
+  commission: number;
+  net_pnl: number;
+  status: TradeStatus;
+  import_source: 'manual' | 'csv' | 'tradovate_api';
+  raw_data?: any;
+  notes?: string;
+  tags?: string[];
+  rating?: number | null; // 1-5 stars
+  emotions?: string[];
+  lessons?: string[];
+  screenshot_url?: string | null;
 }
 
+export interface DailyStats {
+  id: string;
+  user_id: string;
+  account_id: string;
+  date: string; // YYYY-MM-DD
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate: number; // 0-100
+  net_pnl: number;
+  profit_factor: number;
+}
+
+export interface ImportLog {
+  id: string;
+  user_id: string;
+  account_id: string;
+  source: string;
+  file_name: string;
+  total_trades: number;
+  imported_trades: number;
+  skipped_trades: number;
+  status: 'success' | 'failed';
+  created_at?: string;
+}

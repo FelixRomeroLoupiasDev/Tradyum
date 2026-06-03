@@ -1,41 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --font-sans: "Inter", sans-serif;
-  --font-display: "Outfit", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-  
-  --color-[#0b0f19]: #130f22;
-  --color-[#111827]: #1e152d;
-  --color-[#101726]: #1e152d;
-  --color-[#1e293b]: #2d2045;
-  --color-emerald-500: #10b981;
-  --color-rose-500: #f43f5e;
+@layer base {
+  :root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-950/40;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+  }
 }
 
-/* Custom modern scrollbar for professional dashboard feel */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@layer utilities {
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #130f22;
+/* Custom styles for animations and dashboard */
+.glass-panel {
+  @apply bg-slate-900/60 backdrop-blur-md border border-slate-800/80 shadow-xl;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #2b1f41;
-  border-radius: 4px;
+.glow-blue {
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.15);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #3c2a5a;
+.glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
 }
 
-/* Custom styles for active calendar days and interactive playbacks */
-body {
-  font-family: var(--font-sans);
-  background-color: #130f22;
-  color: #f1f5f9;
+.glow-rose {
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.15);
+}
+
+/* Month calendar grid ratios */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
 }

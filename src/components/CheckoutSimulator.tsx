@@ -4,8 +4,7 @@
  */
 
 import { useState, useEffect, FormEvent } from "react";
-import { db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { supabase } from "../supabase";
 import { ShieldCheck, CreditCard, Landmark, CheckCircle2, Loader2, ArrowLeft, BadgeHelp } from "lucide-react";
 
 export default function CheckoutSimulator() {
@@ -61,23 +60,15 @@ export default function CheckoutSimulator() {
     // Step 3: Complete Database Update
     try {
       if (params.userId && params.userId !== "guest" && params.userId !== "null") {
-        console.log("[Simulation] Syncing with cloud Firestore database for UID:", params.userId);
-        const userRef = doc(db, "users", params.userId);
-        const snap = await getDoc(userRef);
+        console.log("[Simulation] Syncing with cloud Supabase database for UID:", params.userId);
         
-        let updatePayload = {
-          plan: params.plan,
-          subscriptionId: `sub_mp_${Date.now().toString().slice(-6)}`,
-          mpPreapprovalId: `pre_mp_${Date.now().toString().slice(-6)}`,
-          updatedAt: new Date().toISOString()
-        };
-
-        if (snap.exists()) {
-          await updateDoc(userRef, updatePayload);
-        } else {
-          // If profile doc is not present, skip or write
-          console.warn("[Simulation] Profile document not seeded yet in cloud DB.");
-        }
+        // Update timezone and complete profile checkout indicator in profiles
+        await supabase
+          .from("profiles")
+          .update({
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          })
+          .eq("id", params.userId);
       }
 
       // Sync local storage as well for instant update across tabs / local profiles
