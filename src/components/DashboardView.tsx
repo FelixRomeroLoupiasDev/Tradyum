@@ -23,9 +23,7 @@ import {
   Flame, 
   Zap, 
   FlameKindling,
-  PieChart,
-  ShieldAlert,
-  Unlock
+  PieChart
 } from 'lucide-react';
 import { Trade, Account } from '../types';
 
@@ -194,123 +192,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
       </div>
-
-      {/* Control de Riesgo Diario Widget */}
-      {activeAccount && (
-        <div id="daily-risk-widget" className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className={`w-5 h-5 ${riskStatus === 'ROJO' ? 'text-rose-500 animate-pulse' : riskStatus === 'AMARILLO' ? 'text-amber-500' : 'text-emerald-500'}`} />
-                <h4 className="font-display font-semibold text-sm text-slate-200">Riesgo Diario & Control de Pérdidas</h4>
-              </div>
-              <p className="text-xs text-slate-400">
-                Límite de drawdown configurado para bloquear y suspender operaciones ante pérdidas excesivas.
-              </p>
-            </div>
-
-            {/* Status Badge */}
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-xs font-semibold mr-1">Riesgo:</span>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono tracking-wider ${
-                riskStatus === 'ROJO' 
-                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 shadow-[0_0_8px_rgba(239,68,68,0.2)]' 
-                  : riskStatus === 'AMARILLO' 
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' 
-                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-              }`}>
-                ● {riskStatus}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-            {/* Realtime daily stats */}
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800/60 text-left">
-              <span className="text-[10px] uppercase font-mono text-slate-500 font-medium">PnL Cerrado de Hoy</span>
-              <p className={`text-lg font-bold font-mono mt-1 ${todayPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {todayPnL >= 0 ? '+' : ''}${todayPnL.toFixed(2)} USD
-              </p>
-              <span className="text-[9px] text-slate-500 block mt-0.5">{todayTrades.length} operaciones cerradas hoy</span>
-            </div>
-
-            {/* Configured Limit (Editable in Real-Time!) */}
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800/60 text-left">
-              <span className="text-[10px] uppercase font-mono text-slate-500 font-medium">Máxima Pérdida Permitida</span>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-slate-400 font-mono text-xs font-semibold">-$</span>
-                <input
-                  type="number"
-                  placeholder="200"
-                  value={absLimitValue === 0 ? "" : absLimitValue}
-                  onChange={async (e) => {
-                    const val = Math.abs(parseFloat(e.target.value) || 0);
-                    if (onUpdateAccount) {
-                      await onUpdateAccount(activeAccount.id, {
-                        daily_loss_limit: -val
-                      });
-                    }
-                  }}
-                  className="bg-transparent text-slate-200 text-sm font-bold font-mono focus:outline-none border-b border-dashed border-slate-700 focus:border-indigo-500 w-24 px-1"
-                />
-                <span className="text-slate-500 font-mono text-xs">USD</span>
-              </div>
-              <span className="text-[9px] text-slate-500 block mt-0.5">Escribe el monto para reajustar</span>
-            </div>
-
-            {/* Manual Unlock / Trigger alerts help */}
-            <div className="flex flex-col justify-center h-full">
-              {activeAccount.is_blocked ? (
-                <button
-                  onClick={async () => {
-                    if (confirm("⚠️ ¿Deseas desbloquear manualmente tu cuenta?\nSe restablecerá la posibilidad de operar, pero estás asumiendo riesgo extra por encima de tu plan.")) {
-                      if (onUpdateAccount) {
-                        await onUpdateAccount(activeAccount.id, {
-                          is_blocked: false,
-                          blocked_at: null,
-                          block_reason: null
-                        });
-                      }
-                    }
-                  }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
-                >
-                  <Unlock className="w-3.5 h-3.5" /> Desbloquear Cuenta Manual
-                </button>
-              ) : (
-                <div className="text-left md:text-right text-[10.5px] text-slate-400 leading-snug px-2">
-                  <p className="font-semibold text-slate-300">💡 Alarma de drawdown activa</p>
-                  <p className="text-slate-500 mt-0.5">
-                    Se te notificará visualmente al 75%, al 90% recibirás un correo, y al 100% bloqueo total.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Progress bar representing Loss Level */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-[11px] font-mono">
-              <span className="text-slate-400 font-medium">Drawdown consumido: {progressPct.toFixed(0)}%</span>
-              <span className="text-slate-500">
-                {currentLoss.toFixed(2)} / {absLimitValue.toFixed(2)} USD
-              </span>
-            </div>
-            <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/80">
-              <div 
-                className={`h-full transition-all duration-500 rounded-full ${
-                  riskStatus === 'ROJO' 
-                    ? 'bg-rose-500 shadow-[0_0_10px_#ef4444]' 
-                    : riskStatus === 'AMARILLO' 
-                    ? 'bg-amber-500' 
-                    : 'bg-emerald-500'
-                }`}
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {totalTradesCount === 0 ? (
         /* Empty State */
