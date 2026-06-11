@@ -171,10 +171,10 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
 
           <div id="account-form-grid" className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Nombre de Cuenta *</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Nombre *</label>
               <input
                 type="text"
-                placeholder="ej. Apex $50k Futures"
+                placeholder="ej. Fondeo FTMO, Demo..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all"
@@ -183,90 +183,32 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">N° de Cuenta / ID</label>
-              <input
-                type="text"
-                placeholder="ej. APEX-12345"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-                className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Tipo de Cuenta</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Tipo</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as AccountType)}
-                className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all font-sans"
+                className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all font-sans cursor-pointer"
               >
-                <option value="funded">Fondeo (Funded)</option>
-                <option value="demo">Demo (Simulación)</option>
-                <option value="personal">Personal / Real (Self-Funded)</option>
+                <option value="funded">Fondeo</option>
+                <option value="demo">Demo</option>
+                <option value="personal">Personal</option>
                 <option value="other">Otro</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Broker / Origen de Datos</label>
-              <select
-                value={broker}
-                onChange={(e) => setBroker(e.target.value as BrokerType)}
-                className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all font-sans"
-              >
-                <option value="ninjatrader">NinjaTrader</option>
-                <option value="tradovate">Tradovate</option>
-                <option value="mt4">MetaTrader 4 (MT4)</option>
-                <option value="mt5">MetaTrader 5 (MT5)</option>
-                <option value="tradingview">TradingView</option>
-                <option value="generic">Genérico (CSV)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Balance Inicial (USD) *</label>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Balance Inicial ($) *</label>
               <input
                 type="number"
+                placeholder="25000"
                 value={initialBalance}
-                onChange={(e) => setInitialBalance(e.target.value)}
+                onChange={(e) => {
+                  setInitialBalance(e.target.value);
+                  setCurrentBalance(e.target.value);
+                }}
                 className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all font-mono"
                 required
               />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Balance Actual (USD) *</label>
-              <input
-                type="number"
-                value={currentBalance}
-                onChange={(e) => setCurrentBalance(e.target.value)}
-                className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all font-mono"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Divisa</label>
-              <input
-                type="text"
-                placeholder="USD"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-slate-200 transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5">Color Temático</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  className="w-10 h-10 bg-transparent border-0 rounded-lg cursor-pointer"
-                />
-                <span className="text-xs font-mono text-purple-300/60">{color}</span>
-              </div>
             </div>
           </div>
 
