@@ -17,8 +17,8 @@ interface SidebarProps {
   accounts: Account[];
   activeAccountId: string | null;
   setActiveAccountId: (id: string | null) => void;
-  activeTab: 'dashboard' | 'journal' | 'calendar' | 'accounts' | 'import';
-  setActiveTab: (tab: 'dashboard' | 'journal' | 'calendar' | 'accounts' | 'import') => void;
+  activeTab: 'dashboard' | 'journal' | 'calendar' | 'accounts';
+  setActiveTab: (tab: 'dashboard' | 'journal' | 'calendar' | 'accounts') => void;
   userProfile: { name: string; email: string } | null;
   onLogout: () => void;
 }
@@ -139,18 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Cuentas de Trading
         </button>
 
-        <button
-          id="nav-tab-import"
-          onClick={() => setActiveTab('import')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium font-display transition-all cursor-pointer ${
-            activeTab === 'import'
-              ? 'bg-blue-600/10 text-blue-400 border-l-4 border-blue-500 font-semibold'
-              : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-          }`}
-        >
-          <UploadCloud className="w-4 h-4" />
-          Importar Operaciones
-        </button>
+
       </nav>
 
       {/* User Session Footer */}

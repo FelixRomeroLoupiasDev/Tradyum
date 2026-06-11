@@ -24,7 +24,6 @@ import { DashboardView } from './components/DashboardView';
 import { JournalView } from './components/JournalView';
 import { CalendarView } from './components/CalendarView';
 import { AccountsView } from './components/AccountsView';
-import { ImportView } from './components/ImportView';
 
 export default function App() {
   // Authentication & Session
@@ -39,7 +38,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   // Core Applet State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'journal' | 'calendar' | 'accounts' | 'import'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'journal' | 'calendar' | 'accounts'>('dashboard');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -1154,13 +1153,7 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'import' && (
-              <ImportView
-                accounts={accounts}
-                activeAccountId={activeAccountId}
-                onImportTrades={handleImportTrades}
-              />
-            )}
+
 
           </main>
         </div>
