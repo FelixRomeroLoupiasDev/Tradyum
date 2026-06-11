@@ -25,6 +25,7 @@ import { JournalView } from './components/JournalView';
 import { CalendarView } from './components/CalendarView';
 import { AccountsView } from './components/AccountsView';
 import { AppLogo } from './components/AppLogo';
+import AddTradeModal from './components/AddTradeModal';
 
 export default function App() {
   // Authentication & Session
@@ -43,6 +44,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'journal' | 'calendar' | 'accounts'>('dashboard');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
+  const [isAddTradeOpen, setIsAddTradeOpen] = useState(false);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
 
@@ -671,6 +673,116 @@ export default function App() {
     }
   };
 
+  const handleSaveManualTrade = async (manualTrade: any) => {
+    const assetTypeMap: Record<string, string> = {
+      'Futures': 'futures',
+      'Stock': 'stocks',
+      'Stocks': 'stocks',
+      'Options': 'options',
+      'Crypto': 'crypto',
+      'Forex': 'forex'
+    };
+
+    const asset_class = assetTypeMap[manualTrade.assetType] || 'futures';
+    const direction = manualTrade.action === 'Buy' ? 'long' : 'short';
+    const cleanAccountId = manualTrade.accountId || activeAccountId || null;
+
+    if (!cleanAccountId && accounts.length > 0) {
+      alert("Por favor selecciona una Cuenta de Trading antes de guardar tu operación.");
+      return;
+    }
+
+    const formattedTrade: any = {
+      id: manualTrade.id || `trade-${Date.now()}`,
+      symbol: manualTrade.symbol,
+      asset_class,
+      direction,
+      entry_price: manualTrade.entryPrice || 0,
+      exit_price: manualTrade.exitPrice || 0,
+      quantity: manualTrade.quantity || 1,
+      entry_time: `${manualTrade.date}T${manualTrade.time || '10:30'}:00`,
+      exit_time: `${manualTrade.date}T${manualTrade.time === '10:30' ? '10:45' : manualTrade.time || '10:45'}:00`,
+      gross_pnl: manualTrade.pnl || 0,
+      commission: 0,
+      net_pnl: manualTrade.netPnl || 0,
+      status: manualTrade.status || 'Flat',
+      import_source: 'manual',
+      notes: manualTrade.notes || '',
+      screenshot_url: manualTrade.screenshot || null
+    };
+
+    if (isOfflineMode) {
+      const dbTrade = {
+        ...formattedTrade,
+        id: `local-tr-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        account_id: cleanAccountId
+      };
+
+      const finalTrades = [...trades, dbTrade];
+      setTrades(finalTrades);
+      localStorage.setItem('tradyum_local_trades', JSON.stringify(finalTrades));
+
+      if (cleanAccountId) {
+        const modifiedAccounts = accounts.map(a => {
+          if (a.id === cleanAccountId) {
+            return { ...a, current_balance: a.current_balance + dbTrade.net_pnl };
+          }
+          return a;
+        });
+        setAccounts(modifiedAccounts);
+        localStorage.setItem('tradyum_local_accounts', JSON.stringify(modifiedAccounts));
+      }
+      setIsAddTradeOpen(false);
+    } else {
+      const formatted = {
+        user_id: currentUser.id,
+        account_id: cleanAccountId,
+        symbol: formattedTrade.symbol,
+        asset_class: formattedTrade.asset_class,
+        direction: formattedTrade.direction,
+        entry_price: formattedTrade.entry_price,
+        exit_price: formattedTrade.exit_price,
+        quantity: formattedTrade.quantity,
+        entry_time: formattedTrade.entry_time,
+        exit_time: formattedTrade.exit_time,
+        gross_pnl: formattedTrade.gross_pnl,
+        commission: 0,
+        net_pnl: formattedTrade.net_pnl,
+        status: formattedTrade.status,
+        import_source: 'manual',
+        notes: formattedTrade.notes,
+        screenshot_url: formattedTrade.screenshot_url
+      };
+
+      const { data: inserted, error: insErr } = await supabase
+        .from('trades')
+        .insert(formatted)
+        .select();
+
+      if (!insErr && inserted && inserted.length > 0) {
+        setTrades([...trades, inserted[0]] as Trade[]);
+
+        if (cleanAccountId) {
+          const activeAccSpec = accounts.find(a => a.id === cleanAccountId);
+          if (activeAccSpec) {
+            const nextBalance = activeAccSpec.current_balance + formattedTrade.net_pnl;
+            await supabase
+              .from('accounts')
+              .update({ current_balance: nextBalance })
+              .eq('id', cleanAccountId);
+
+            setAccounts(accounts.map(a => a.id === cleanAccountId ? { ...a, current_balance: nextBalance } : a));
+          }
+        }
+
+        await seedCloudDailyStats(currentUser.id, cleanAccountId, [inserted[0] as Trade]);
+        setIsAddTradeOpen(false);
+      } else {
+        alert(insErr?.message || 'Error guardando registros en la base de datos');
+      }
+    }
+  };
+
   // AUTH ACTIONS
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -948,6 +1060,7 @@ export default function App() {
                   accounts={accounts}
                   activeAccountId={activeAccountId}
                   onUpdateAccount={handleUpdateAccount}
+                  onAddTradeRequest={() => setIsAddTradeOpen(true)}
                 />
               )}
 
@@ -958,6 +1071,7 @@ export default function App() {
                 activeAccountId={activeAccountId}
                 onUpdateTradeDetails={handleUpdateTradeDetails}
                 onDeleteTrade={handleDeleteTrade}
+                onAddTradeRequest={() => setIsAddTradeOpen(true)}
               />
             )}
 
@@ -985,6 +1099,13 @@ export default function App() {
           </main>
         </div>
       )}
+
+      <AddTradeModal
+        isOpen={isAddTradeOpen}
+        onClose={() => setIsAddTradeOpen(false)}
+        onAddTrade={handleSaveManualTrade}
+        accounts={accounts}
+      />
     </div>
   );
 }

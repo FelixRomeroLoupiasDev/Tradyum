@@ -32,13 +32,15 @@ interface DashboardViewProps {
   accounts: Account[];
   activeAccountId: string | null;
   onUpdateAccount?: (id: string, updates: Partial<Account>) => Promise<void>;
+  onAddTradeRequest?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   trades,
   accounts,
   activeAccountId,
-  onUpdateAccount
+  onUpdateAccount,
+  onAddTradeRequest
 }) => {
   // 1. Filter trades for the selected account
   const filteredTrades = activeAccountId 
@@ -155,15 +157,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {activeAccount && (
-          <div id="account-status-badge" className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2.5 px-4 rounded-xl">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activeAccount.color || '#3b82f6' }} />
-            <div className="text-left leading-tight">
-              <p className="text-xs font-semibold text-slate-300">{activeAccount.name}</p>
-              <span className="text-[10px] font-mono text-slate-500 uppercase">{activeAccount.broker}</span>
+        <div className="flex items-center gap-3">
+          {onAddTradeRequest && (
+            <div className="relative inline-block select-none group">
+              {/* Ambient Glow */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8] opacity-75 blur-md group-hover:opacity-100 group-hover:blur-lg transition duration-500 animate-pulse" />
+              {/* Border Gradient Container */}
+              <div className="absolute inset-0 rounded-full p-[1.5px] bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8]" />
+              {/* Main Button */}
+              <button
+                id="dashboard-add-trade-btn"
+                onClick={onAddTradeRequest}
+                className="relative flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#08020e] text-slate-100 hover:text-white text-xs font-semibold tracking-wide cursor-pointer transition-colors duration-300 shadow-2xl"
+                style={{
+                  boxShadow: 'inset 0 0 10px rgba(168, 85, 247, 0.2)',
+                }}
+              >
+                {/* Mini background sparkles */}
+                <div className="absolute inset-0 rounded-full overflow-hidden opacity-45 pointer-events-none">
+                  <div className="absolute top-1 left-4 w-1 h-1 bg-white rounded-full animate-ping [animation-delay:0.2s]" />
+                  <div className="absolute top-2 right-6 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:0.7s]" />
+                  <div className="absolute bottom-1 left-8 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:1.2s]" />
+                  <div className="absolute top-1.5 right-12 w-1.5 h-1.5 bg-pink-400/20 rounded-full animate-ping [animation-delay:1.8s]" />
+                </div>
+                
+                <span className="text-sm font-bold text-[#c084fc] group-hover:scale-125 transition duration-300">+</span>
+                <span className="font-semibold tracking-wider">Agregar Trade</span>
+              </button>
             </div>
-          </div>
-        )}
+          )}
+
+          {activeAccount && (
+            <div id="account-status-badge" className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2.5 px-4 rounded-xl">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activeAccount.color || '#3b82f6' }} />
+              <div className="text-left leading-tight">
+                <p className="text-xs font-semibold text-slate-300">{activeAccount.name}</p>
+                <span className="text-[10px] font-mono text-slate-500 uppercase">{activeAccount.broker}</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {totalTradesCount === 0 ? (
@@ -175,9 +208,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <h4 className="font-display font-medium text-slate-200">No hay trades cargados</h4>
             <p className="text-xs text-slate-400 leading-normal mt-1.5 max-w-sm mx-auto">
-              Para ver el cálculo inteligente de tus rachas de pnl, win rate, curva de equidad y métricas, primero importa trades en la pestaña <strong>"Importar Operaciones"</strong>.
+              Para ver el cálculo inteligente de tus rachas de pnl, win rate, curva de equidad y métricas, primero registra tus operaciones manualmente usando el formulario.
             </p>
           </div>
+          {onAddTradeRequest && (
+            <div className="relative inline-block mx-auto mt-2 select-none group">
+              {/* Ambient Glow */}
+              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8] opacity-70 blur-md group-hover:opacity-100 group-hover:blur-lg transition duration-500 animate-pulse" />
+              {/* Border Gradient Container */}
+              <div className="absolute inset-0 rounded-full p-[1.5px] bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8]" />
+              {/* Main Button */}
+              <button
+                id="dashboard-empty-add-trade-btn"
+                onClick={onAddTradeRequest}
+                className="relative flex items-center justify-center gap-2 px-10 py-3.5 rounded-full bg-[#08020e] text-slate-100 hover:text-white text-xs font-semibold tracking-wide cursor-pointer transition-colors duration-300 shadow-2xl"
+                style={{
+                  boxShadow: 'inset 0 0 12px rgba(168, 85, 247, 0.2)',
+                }}
+              >
+                {/* Mini background sparkles */}
+                <div className="absolute inset-0 rounded-full overflow-hidden opacity-45 pointer-events-none">
+                  <div className="absolute top-2 left-6 w-1 h-1 bg-white rounded-full animate-ping [animation-delay:0.2s]" />
+                  <div className="absolute top-4 right-10 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:0.7s]" />
+                  <div className="absolute bottom-2 left-14 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:1.2s]" />
+                  <div className="absolute top-3 right-16 w-1.5 h-1.5 bg-pink-400/20 rounded-full animate-ping [animation-delay:1.8s]" />
+                </div>
+                
+                <span className="text-base font-bold text-[#c084fc] group-hover:scale-125 transition duration-300">+</span>
+                <span className="font-semibold tracking-wider">Agregar Trade</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         /* Metrics & Charts Container */

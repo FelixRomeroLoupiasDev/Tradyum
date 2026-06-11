@@ -24,6 +24,7 @@ interface JournalViewProps {
   activeAccountId: string | null;
   onUpdateTradeDetails: (id: string, updates: Partial<Trade>) => Promise<void>;
   onDeleteTrade: (id: string) => Promise<void>;
+  onAddTradeRequest?: () => void;
 }
 
 export const JournalView: React.FC<JournalViewProps> = ({
@@ -31,7 +32,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   accounts,
   activeAccountId,
   onUpdateTradeDetails,
-  onDeleteTrade
+  onDeleteTrade,
+  onAddTradeRequest
 }) => {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
 
@@ -161,13 +163,43 @@ export const JournalView: React.FC<JournalViewProps> = ({
   return (
     <div id="journal-view-root" className="space-y-6">
       {/* View Head */}
-      <div>
-        <h2 id="journal-view-title" className="font-display font-semibold text-xl tracking-tight text-slate-100">
-          Bitácora Detallada (Journal)
-        </h2>
-        <p id="journal-view-desc" className="text-xs text-slate-400 mt-1">
-          Lista tus operaciones históricas con filtros avanzados para indagar en tu mentalidad y psicología.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 id="journal-view-title" className="font-display font-semibold text-xl tracking-tight text-slate-100">
+            Bitácora Detallada (Journal)
+          </h2>
+          <p id="journal-view-desc" className="text-xs text-slate-400 mt-1">
+            Lista tus operaciones históricas con filtros avanzados para indagar en tu mentalidad y psicología.
+          </p>
+        </div>
+        {onAddTradeRequest && (
+          <div className="relative inline-block select-none group">
+            {/* Ambient Glow */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8] opacity-75 blur-md group-hover:opacity-100 group-hover:blur-lg transition duration-500 animate-pulse" />
+            {/* Border Gradient Container */}
+            <div className="absolute inset-0 rounded-full p-[1.5px] bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8]" />
+            {/* Main Button */}
+            <button
+              id="journal-add-trade-btn"
+              onClick={onAddTradeRequest}
+              className="relative flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#08020e] text-slate-100 hover:text-white text-xs font-semibold tracking-wide cursor-pointer transition-colors duration-300 shadow-2xl"
+              style={{
+                boxShadow: 'inset 0 0 10px rgba(168, 85, 247, 0.2)',
+              }}
+            >
+              {/* Mini background sparkles */}
+              <div className="absolute inset-0 rounded-full overflow-hidden opacity-45 pointer-events-none">
+                <div className="absolute top-1 left-4 w-1 h-1 bg-white rounded-full animate-ping [animation-delay:0.2s]" />
+                <div className="absolute top-2 right-6 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:0.7s]" />
+                <div className="absolute bottom-1 left-8 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:1.2s]" />
+                <div className="absolute top-1.5 right-12 w-1.5 h-1.5 bg-pink-400/20 rounded-full animate-ping [animation-delay:1.8s]" />
+              </div>
+              
+              <span className="text-sm font-bold text-[#c084fc] group-hover:scale-125 transition duration-300">+</span>
+              <span className="font-semibold tracking-wider">Agregar Trade</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filters Bar */}
