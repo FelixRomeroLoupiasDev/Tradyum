@@ -122,13 +122,32 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
         </div>
 
         {!isCreating && (
-          <button
-            id="create-account-btn"
-            onClick={() => { resetForm(); setEditingAccId(null); setIsCreating(true); }}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#9333ea] to-[#db2777] hover:opacity-90 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-lg shadow-purple-500/10 cursor-pointer transition-all"
-          >
-            <Plus className="w-4 h-4" /> Nueva Cuenta
-          </button>
+          <div className="relative inline-block select-none group">
+            {/* Ambient Glow */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8] opacity-75 blur-md group-hover:opacity-100 group-hover:blur-lg transition duration-500 animate-pulse" />
+            {/* Border Gradient Container */}
+            <div className="absolute inset-0 rounded-full p-[1.5px] bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8]" />
+            {/* Main Button */}
+            <button
+              id="create-account-btn"
+              onClick={() => { resetForm(); setEditingAccId(null); setIsCreating(true); }}
+              className="relative flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#08020e] text-slate-100 hover:text-white text-xs font-semibold tracking-wide cursor-pointer transition-colors duration-300 shadow-2xl"
+              style={{
+                boxShadow: 'inset 0 0 10px rgba(168, 85, 247, 0.2)',
+              }}
+            >
+              {/* Mini background sparkles */}
+              <div className="absolute inset-0 rounded-full overflow-hidden opacity-45 pointer-events-none">
+                <div className="absolute top-1 left-4 w-1 h-1 bg-white rounded-full animate-ping [animation-delay:0.2s]" />
+                <div className="absolute top-2 right-6 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:0.7s]" />
+                <div className="absolute bottom-1 left-8 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:1.2s]" />
+                <div className="absolute top-1.5 right-12 w-1.5 h-1.5 bg-pink-400/20 rounded-full animate-ping [animation-delay:1.8s]" />
+              </div>
+              
+              <span className="text-sm font-bold text-[#c084fc] group-hover:scale-125 transition duration-300">+</span>
+              <span className="font-semibold tracking-wider">Nueva Cuenta</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -136,16 +155,17 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
         /* Account creation form */
         <form id="account-form" onSubmit={handleSubmit} className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-6 glow-blue max-w-2xl space-y-5">
           <div id="account-form-header" className="flex items-center justify-between pb-3 border-b border-purple-950/30">
-            <h3 id="account-form-title" className="font-display font-medium text-sm text-[#ebd7ff]">
-              {editingAccId ? 'Editar Cuenta de Trading' : 'Crear Nueva Cuenta de Trading'}
+            <h3 id="account-form-title" className="font-display font-semibold text-slate-100 text-sm">
+              {editingAccId ? 'Editar Cuenta' : 'Nueva Cuenta'}
             </h3>
             <button
-              id="cancel-form-btn"
+              id="cancel-form-icon-btn"
               type="button"
               onClick={() => { setIsCreating(false); resetForm(); }}
-              className="p-1 px-2.5 rounded-lg text-xs bg-[#12071a] border border-purple-950/40 text-purple-300/60 hover:text-purple-200 transition-colors"
+              className="p-1.5 rounded-lg bg-[#12071a] border border-purple-950/40 text-slate-400 hover:text-white transition-all cursor-pointer"
+              title="Cerrar"
             >
-              Cancelar
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -250,15 +270,46 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             </div>
           </div>
 
-          <div id="form-actions" className="flex gap-3 justify-end pt-3 border-t border-purple-950/30">
+          <div id="form-actions" className="flex gap-3 justify-end pt-5 border-t border-purple-950/30 items-center">
             <button
-              id="submit-account-btn"
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-gradient-to-r from-[#9333ea] to-[#db2777] hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-xl disabled:opacity-50 cursor-pointer"
+              id="cancel-form-btn-bottom"
+              type="button"
+              onClick={() => { setIsCreating(false); resetForm(); }}
+              className="px-5 py-2.5 bg-[#12071a] hover:bg-[#1e152d] border border-purple-950/40 text-slate-400 hover:text-white rounded-full text-xs font-semibold cursor-pointer transition-all focus:outline-none"
             >
-              {isSubmitting ? 'Guardando...' : editingAccId ? 'Actualizar Cuenta' : 'Crear Cuenta'}
+              Cancelar
             </button>
+            <div className="relative inline-block select-none group">
+              {/* Ambient Glow */}
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8] opacity-75 blur-md group-hover:opacity-100 group-hover:blur-lg transition duration-500 animate-pulse" />
+              {/* Border Gradient Container */}
+              <div className="absolute inset-0 rounded-full p-[1.5px] bg-gradient-to-r from-[#c084fc] via-[#6366f1] to-[#38bdf8]" />
+              {/* Main Button */}
+              <button
+                id="submit-account-btn"
+                type="submit"
+                disabled={isSubmitting}
+                className="relative flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#08020e] text-slate-100 hover:text-white text-xs font-semibold tracking-wide cursor-pointer transition-colors duration-300 shadow-2xl disabled:opacity-50"
+                style={{
+                  boxShadow: 'inset 0 0 10px rgba(168, 85, 247, 0.2)',
+                }}
+              >
+                {/* Mini background sparkles */}
+                <div className="absolute inset-0 rounded-full overflow-hidden opacity-45 pointer-events-none">
+                  <div className="absolute top-1 left-4 w-1 h-1 bg-white rounded-full animate-ping [animation-delay:0.2s]" />
+                  <div className="absolute top-2 right-6 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:0.7s]" />
+                  <div className="absolute bottom-1 left-8 w-0.5 h-0.5 bg-white rounded-full animate-ping [animation-delay:1.2s]" />
+                  <div className="absolute top-1.5 right-12 w-1.5 h-1.5 bg-pink-400/20 rounded-full animate-ping [animation-delay:1.8s]" />
+                </div>
+                
+                <span className="text-sm font-bold text-[#c084fc] group-hover:scale-125 transition duration-300">
+                  {editingAccId ? '✓' : '+'}
+                </span>
+                <span className="font-semibold tracking-wider">
+                  {isSubmitting ? 'Guardando...' : editingAccId ? 'Actualizar Cuenta' : 'Crear Cuenta'}
+                </span>
+              </button>
+            </div>
           </div>
         </form>
       ) : (
