@@ -10,8 +10,11 @@ import {
   Cpu,
   BookmarkCheck,
   Zap,
-  Globe
+  Globe,
+  ShieldAlert,
+  Unlock
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { supabase } from './supabase';
 import { Account, Trade, Profile, DailyStats } from './types';
 
@@ -45,33 +48,75 @@ export default function App() {
   // Page loading spinner
   const [appLoading, setAppLoading] = useState(true);
 
+  // Core risk control and blocking calculation values
+  const activeAccount = accounts.find(a => a.id === activeAccountId);
+  const localToday = new Date();
+  const yccc = localToday.getFullYear();
+  const mccc = String(localToday.getMonth() + 1).padStart(2, '0');
+  const dccc = String(localToday.getDate()).padStart(2, '0');
+  const localTodayStr = `${yccc}-${mccc}-${dccc}`;
+
+  const todayTrades = activeAccount 
+    ? trades.filter(t => t.account_id === activeAccountId && t.exit_time && t.exit_time.split('T')[0] === localTodayStr)
+    : [];
+
+  const todayPnL = todayTrades.reduce((sum, t) => sum + (t.net_pnl || 0), 0);
+  const limitValue = activeAccount?.daily_loss_limit !== undefined ? activeAccount.daily_loss_limit : -200;
+  const absLimitValue = Math.abs(limitValue);
+
+  const currentLoss = todayPnL < 0 ? Math.abs(todayPnL) : 0;
+  const progressPct = absLimitValue > 0 ? (currentLoss / absLimitValue) * 100 : 0;
+
+  const isAccountBlocked = activeAccount?.is_blocked || (progressPct >= 100);
+
   // Initialize Auth Observer
   useEffect(() => {
     setAppLoading(true);
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setIsOfflineMode(false);
-        fetchProfileAndData(session.user);
-      } else {
-        // Fallback to offline localstorage if not logged in
-        loadOfflineDemoData();
-        setAppLoading(false);
-      }
-    });
+    let subscription: any = null;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setIsOfflineMode(false);
-        fetchProfileAndData(session.user);
-      } else {
-        setCurrentUser(null);
-        setUserProfile(null);
-      }
-    });
+    try {
+      supabase.auth.getSession()
+        .then(({ data: { session } }) => {
+          if (session?.user) {
+            setCurrentUser(session.user);
+            setIsOfflineMode(false);
+            fetchProfileAndData(session.user);
+          } else {
+            // Fallback to offline localstorage if not logged in
+            loadOfflineDemoData();
+            setAppLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.warn("[Supabase Auth] Fallback to Offline Mode due to session load issue:", err);
+          loadOfflineDemoData();
+          setAppLoading(false);
+        });
 
-    return () => subscription.unsubscribe();
+      const authChangeRes = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setCurrentUser(session.user);
+          setIsOfflineMode(false);
+          fetchProfileAndData(session.user);
+        } else {
+          setCurrentUser(null);
+          setUserProfile(null);
+        }
+      });
+      if (authChangeRes && authChangeRes.data) {
+        subscription = authChangeRes.data.subscription;
+      }
+    } catch (err) {
+      console.warn("[Supabase Auth] Failed to register auth changes. Entering fallback offline mode.", err);
+      loadOfflineDemoData();
+      setAppLoading(false);
+    }
+
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   // Fetch all Supabase data for the logged-in user
@@ -174,6 +219,129 @@ export default function App() {
     }
   };
 
+  // Automatically evaluate and update daily risk blocking conditions
+  useEffect(() => {
+    if (appLoading) return;
+
+    const evalRiskLimits = async () => {
+      const localToday = new Date();
+      const yyyy = localToday.getFullYear();
+      const mm = String(localToday.getMonth() + 1).padStart(2, '0');
+      const dd = String(localToday.getDate()).padStart(2, '0');
+      const localTodayStr = `${yyyy}-${mm}-${dd}`;
+
+      let updatedState = false;
+      const nextAccounts = await Promise.all(accounts.map(async (acc) => {
+        // 1. Midnight Auto-Reset Check
+        if (acc.is_blocked && acc.blocked_at) {
+          const blockedDay = acc.blocked_at.split('T')[0];
+          if (blockedDay !== localTodayStr) {
+            updatedState = true;
+            console.log(`[Auto-Reset] Midnight reset for account ${acc.name}`);
+            const resetData = { is_blocked: false, blocked_at: null, block_reason: null };
+            if (!isOfflineMode) {
+              await supabase.from('accounts').update(resetData).eq('id', acc.id);
+            }
+            return { ...acc, ...resetData };
+          }
+        }
+
+        // 2. Evaluation of Daily drawdown vs loss limit
+        const accTrades = trades.filter(t => t.account_id === acc.id);
+        const todayTrades = accTrades.filter(t => t.exit_time && t.exit_time.split('T')[0] === localTodayStr);
+        const todayPnL = todayTrades.reduce((sum, t) => sum + (t.net_pnl || 0), 0);
+        const limit = acc.daily_loss_limit !== undefined ? acc.daily_loss_limit : -200;
+        const absLimit = Math.abs(limit);
+
+        // If daily loss reaches 100% of limits and is NOT already marked as blocked
+        if (todayPnL <= -absLimit && absLimit > 0 && !acc.is_blocked) {
+          updatedState = true;
+          const blockReason = `Límite diario de pérdida alcanzado (${todayPnL.toFixed(2)} <= -${absLimit})`;
+          const blockData = {
+            is_blocked: true,
+            blocked_at: new Date().toISOString(),
+            block_reason: blockReason
+          };
+
+          console.log(`[Riesgo Activo] Bloqueando cuenta ${acc.name}: ${blockReason}`);
+
+          if (!isOfflineMode) {
+            await supabase.from('accounts').update(blockData).eq('id', acc.id);
+          }
+
+          // Trigger remote position closure if Tradovate
+          if (acc.broker === 'tradovate') {
+            try {
+              await fetch('/api/tradovate/block', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  api_key: acc.api_key,
+                  api_secret: acc.api_secret,
+                  accountId: acc.id
+                })
+              });
+            } catch (err) {
+              console.error("[Tradovate positions close failed]", err);
+            }
+          }
+
+          // Trigger email notification
+          try {
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: currentUser?.email || 'user@tradyum.com',
+                subject: `🚫 LÍMITE DE PÉRDIDA DIARIA ALCANZADO [${acc.name}]`,
+                message: `Hola,\n\nTe informamos que tu cuenta "${acc.name}" ha alcanzado el límite de pérdida diaria configurado (-${absLimit}). El PnL total real-time de hoy es de ${todayPnL.toFixed(2)}.\n\nSe ha activado el bloqueo diario obligatorio de tu cuenta. Todo trading futuro ha sido suspendido y tus posiciones abiertas liquidadas hasta la medianoche.\n\nEquipo de Tradyum.`
+              })
+            });
+          } catch (err) {
+            console.error("[Email send failed]", err);
+          }
+
+          return { ...acc, ...blockData };
+        }
+
+        // 3. Email notifications for 90% threshold
+        const lossAmount = todayPnL < 0 ? Math.abs(todayPnL) : 0;
+        const pct = absLimit > 0 ? (lossAmount / absLimit) * 100 : 0;
+        if (pct >= 90 && pct < 100) {
+          const notifiedKey = `notified_90_${acc.id}_${localTodayStr}`;
+          if (!localStorage.getItem(notifiedKey)) {
+            localStorage.setItem(notifiedKey, 'true');
+            console.log(`[Riesgo 90%] Enviando alarma email para ${acc.name}`);
+            try {
+              await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: currentUser?.email || 'user@tradyum.com',
+                  subject: `⚠️ ADVERTENCIA 90% DE LÍMITE DE PÉRDIDA [${acc.name}]`,
+                  message: `Hola,\n\nAtención: Tu cuenta "${acc.name}" se encuentra al ${pct.toFixed(0)}% de alcanzar su límite diario de Drawdown.\n\nPnL Actual: ${todayPnL.toFixed(2)} / Límite: -${absLimit}.\nToma precauciones de inmediato.\n\nEquipo de Tradyum.`
+                })
+              });
+            } catch (err) {
+              console.error("[90% email fail]", err);
+            }
+          }
+        }
+
+        return acc;
+      }));
+
+      if (updatedState) {
+        setAccounts(nextAccounts);
+        if (isOfflineMode) {
+          localStorage.setItem('tradyum_local_accounts', JSON.stringify(nextAccounts));
+        }
+      }
+    };
+
+    evalRiskLimits();
+  }, [trades, accounts, appLoading, isOfflineMode, currentUser]);
+
   // Seed sample mock data for offline simulation or new profiles
   const loadOfflineDemoData = () => {
     const cachedAccounts = localStorage.getItem('tradyum_local_accounts');
@@ -188,7 +356,6 @@ export default function App() {
         setActiveAccountId(parsedAcc[0].id);
       }
     } else {
-      // Seed gorgeous demo trades
       const demoAccounts: Account[] = [
         {
           id: 'demo-acc-1',
@@ -201,7 +368,8 @@ export default function App() {
           initial_balance: 100000,
           current_balance: 104250,
           is_active: true,
-          color: '#3b82f6'
+          color: '#3b82f6',
+          balance: 104250
         },
         {
           id: 'demo-acc-2',
@@ -216,9 +384,10 @@ export default function App() {
           is_active: true,
           color: '#10b981',
           api_key: 'dummyKey',
-          api_secret: 'dummySecret'
+          api_secret: 'dummySecret',
+          balance: 9340
         }
-      ];
+      ] as any;
 
       const demoTrades: Trade[] = [
         {
@@ -309,7 +478,7 @@ export default function App() {
           rating: 3,
           emotions: ['Exceso', 'Venganza']
         }
-      ];
+      ] as any[] as Trade[];
 
       localStorage.setItem('tradyum_local_accounts', JSON.stringify(demoAccounts));
       localStorage.setItem('tradyum_local_trades', JSON.stringify(demoTrades));
@@ -324,6 +493,7 @@ export default function App() {
   const handleCreateAccount = async (payload: Partial<Account>) => {
     if (isOfflineMode) {
       const newAcc: Account = {
+        balance: payload.current_balance ?? payload.initial_balance ?? 0,
         id: `local-acc-${Date.now()}`,
         user_id: 'offline',
         name: payload.name || 'Sample Account',
@@ -837,46 +1007,123 @@ export default function App() {
         </div>
       ) : (
         /* PRIMARY APPLICATION DESKTOP INTERFACE */
-        <div id="authenticated-app-canvas" className="flex-1 flex min-h-screen">
-          
-          {/* Siderbar navigation */}
-          <Sidebar
-            accounts={accounts}
-            activeAccountId={activeAccountId}
-            setActiveAccountId={setActiveAccountId}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            userProfile={currentUser ? { name: userProfile?.full_name || currentUser.email.split('@')[0], email: currentUser.email } : null}
-            onLogout={handleLogout}
-          />
-
-          {/* Main workspace scroll canvas */}
-          <main id="main-scroll-canvas" className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto bg-slate-950 relative space-y-8">
+          <div id="authenticated-app-canvas" className="flex-1 flex min-h-screen relative">
             
-            {/* Topbar welcome bar */}
-            {isOfflineMode && (
-              <div id="trial-pnl-notice" className="bg-gradient-to-r from-amber-500/20 to-orange-600/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
-                <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-200">🛠️ Estás en el Módulo Demo Offline</p>
-                  <p className="text-[10.5px] text-slate-400">Tus datos se guardan temporalmente en tu navegador. Para Sincronizar permanentemente con Supabase, presiona Conectar Nube.</p>
+            {/* Global Block Overlay Screen (Unbypassable) */}
+            {isAccountBlocked && (
+              <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 text-center select-none animate-[fadeIn_0.3s_ease-out]">
+                <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-rose-500 animate-pulse" />
+                  <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/5">
+                    <ShieldAlert className="w-8 h-8 animate-bounce" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-display font-bold text-xl text-slate-100 tracking-tight">
+                      🚫 LÍMITE DE PÉRDIDA DIARIA ALCANZADO
+                    </h3>
+                    <p className="text-xs font-mono text-slate-400">
+                      Cuenta: <span className="text-slate-200 font-semibold">{activeAccount?.name}</span> ({activeAccount?.broker.toUpperCase()})
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-950 p-4 rounded-xl border border-rose-500/10 text-left font-mono space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">PnL de Hoy:</span>
+                      <span className="text-rose-450 font-bold text-rose-400">${todayPnL.toFixed(2)} USD</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Límite Permitido:</span>
+                      <span className="text-slate-300 font-medium">-${absLimitValue.toFixed(2)} USD</span>
+                    </div>
+                    <div className="border-t border-slate-900 pt-2 text-[10.5px] text-slate-400 leading-normal">
+                      <span className="font-semibold text-rose-400">Acción de Control Ejecutada:</span> El sistema detectó que superaste el drawdown máximo configurado. Por política estricta de riesgo, tu trading queda inmediatamente bloqueado.
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      onClick={async () => {
+                        if (confirm("⚠️ ¿Deseas desbloquear manualmente esta cuenta de trading?\nRecuerda respetar tu control psicológico y disciplina de riesgo.")) {
+                          if (activeAccount) {
+                            await handleUpdateAccount(activeAccount.id, {
+                              is_blocked: false,
+                              blocked_at: null,
+                              block_reason: null
+                            });
+                          }
+                        }
+                      }}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
+                    >
+                      <Unlock className="w-3.5 h-3.5" /> Desbloquear Cuenta Manualmente
+                    </button>
+                    <p className="text-[10px] text-slate-500">
+                      El bloqueo se desactiva de manera remota a la medianoche (00:00 hora local)
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => { setIsOfflineMode(false); setCurrentUser(null); }}
-                  className="bg-slate-950 hover:bg-slate-900 border border-slate-800 text-amber-400 py-1.5 px-3.5 rounded-xl text-xs font-mono cursor-pointer transition-colors"
-                >
-                  Iniciar Sesión Supabase
-                </button>
               </div>
             )}
 
-            {/* Rendered Views Router */}
-            {activeTab === 'dashboard' && (
-              <DashboardView
-                trades={trades}
-                accounts={accounts}
-                activeAccountId={activeAccountId}
-              />
-            )}
+            {/* Siderbar navigation */}
+            <Sidebar
+              accounts={accounts}
+              activeAccountId={activeAccountId}
+              setActiveAccountId={setActiveAccountId}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              userProfile={currentUser ? { name: userProfile?.full_name || currentUser.email.split('@')[0], email: currentUser.email } : null}
+              onLogout={handleLogout}
+            />
+
+            {/* Main workspace scroll canvas */}
+            <main id="main-scroll-canvas" className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto bg-slate-950 relative space-y-8">
+              
+              {/* Topbar welcome bar */}
+              {isOfflineMode && (
+                <div id="trial-pnl-notice" className="bg-gradient-to-r from-amber-500/20 to-orange-600/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-slate-200">🛠️ Estás en el Módulo Demo Offline</p>
+                    <p className="text-[10.5px] text-slate-400">Tus datos se guardan temporalmente en tu navegador. Para Sincronizar permanentemente con Supabase, presiona Conectar Nube.</p>
+                  </div>
+                  <button
+                    onClick={() => { setIsOfflineMode(false); setCurrentUser(null); }}
+                    className="bg-slate-950 hover:bg-slate-900 border border-slate-800 text-amber-400 py-1.5 px-3.5 rounded-xl text-xs font-mono cursor-pointer transition-colors"
+                  >
+                    Iniciar Sesión Supabase
+                  </button>
+                </div>
+              )}
+
+              {/* 75% and 90% Risk drawdown workspace warning banners */}
+              {activeAccount && !isAccountBlocked && progressPct >= 75 && (
+                <div id="risk-drawdown-warning" className={`p-4 rounded-xl border flex items-center gap-3 text-left animate-pulse ${
+                  progressPct >= 90 
+                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-200' 
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+                }`}>
+                  <ShieldAlert className={`w-5 h-5 flex-shrink-0 ${progressPct >= 90 ? 'text-rose-450 text-rose-400' : 'text-amber-500'}`} />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold font-display uppercase tracking-wider">
+                      {progressPct >= 90 ? '🛑 Alerta de riesgo crítico (90% de límite alcanzado)' : '⚠️ Advertencia de drawdown diario (75% de límite alcanzado)'}
+                    </p>
+                    <p className="text-[10.5px] text-slate-300 font-mono">
+                      Tu cuenta <span className="font-semibold text-slate-100 font-sans">{activeAccount.name}</span> ha consumido el <span className="font-bold underline">{progressPct.toFixed(0)}%</span> de su drawdown diario permitido de hoy. PnL actual: <span className="font-semibold">${todayPnL.toFixed(2)}</span> (límite diario: -${absLimitValue} USD).
+                      {progressPct >= 90 && " Se ha enviado una notificación de advertencia por correo electrónico."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rendered Views Router */}
+              {activeTab === 'dashboard' && (
+                <DashboardView
+                  trades={trades}
+                  accounts={accounts}
+                  activeAccountId={activeAccountId}
+                  onUpdateAccount={handleUpdateAccount}
+                />
+              )}
 
             {activeTab === 'journal' && (
               <JournalView

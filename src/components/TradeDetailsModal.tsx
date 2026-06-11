@@ -142,7 +142,7 @@ export default function TradeDetailsModal({ trade, onClose, onDeleteTrade, onUpd
                 {trade.setups.length === 0 ? (
                   <span className="text-[10px] text-slate-500">None registered</span>
                 ) : (
-                  trade.setups.map(s => (
+                  trade.setups.map((s: string) => (
                     <span key={s} className="bg-blue-600/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[9px] font-medium">
                       {s}
                     </span>
@@ -158,7 +158,7 @@ export default function TradeDetailsModal({ trade, onClose, onDeleteTrade, onUpd
                 {trade.mistakes.length === 0 ? (
                   <span className="text-[10px] text-emerald-500 font-medium">No mistakes flagged</span>
                 ) : (
-                  trade.mistakes.map(m => (
+                  trade.mistakes.map((m: string) => (
                     <span key={m} className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[9px] font-medium">
                       ☠️ {m}
                     </span>

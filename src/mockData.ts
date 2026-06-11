@@ -196,7 +196,7 @@ export const INITIAL_TRADES: Trade[] = [
     netPnl: 252.75,
     status: "Win"
   }
-];
+] as any[] as Trade[];
 
 export const POPULAR_SETUPS = [
   "Breakout",

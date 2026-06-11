@@ -338,7 +338,7 @@ export function parseCSVToTrades(
         pnl,
         netPnl,
         status
-      });
+      } as any as Trade);
     } catch (e: any) {
       errors.push(`Fila ${i + 1}: Error procesando datos: ${e.message}`);
     }

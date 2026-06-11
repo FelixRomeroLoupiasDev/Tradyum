@@ -27,10 +27,15 @@ import {
 } from "lucide-react";
 
 // Importar los adaptadores desarrollados de Tradyum Integrations
+// @ts-ignore
 import { importFromNinjaTrader } from "../integrations/ninjatrader/index.js";
+// @ts-ignore
 import { importFromTradovate } from "../integrations/tradovate/index.js";
+// @ts-ignore
 import { importFromMT4 } from "../integrations/mt4/index.js";
+// @ts-ignore
 import { importFromMT5 } from "../integrations/mt5/index.js";
+// @ts-ignore
 import { importFromTradingView } from "../integrations/tradingview/index.js";
 
 interface ImportTradesViewProps {

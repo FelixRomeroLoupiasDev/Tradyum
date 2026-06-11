@@ -10,9 +10,84 @@ import {
   Loader2, 
   ArrowRight,
   TrendingDown,
-  Database
+  Database,
+  Terminal
 } from 'lucide-react';
 import { Account, Trade, AssetClassType } from '../types';
+
+const mqlCode = `//+------------------------------------------------------------------+
+//|                                              TradyumRiskGuard.mq5 |
+//|                                  Copyright 2026, Tradyum Trading  |
+//|                                             https://tradyum.com   |
+//+------------------------------------------------------------------+
+#property copyright "Tradyum Trading"
+#property link      "https://tradyum.com"
+#property version   "1.00"
+#property strict
+
+// Inputs
+input string   AccountID       = "TU_ACCOUNT_ID_AQUI"; // ID de la cuenta en Tradyum
+input string   ServerUrl       = "http://localhost:3000/api/mt4-webhook"; // URL de tu app en Vercel
+input int      CheckIntervalS  = 30; // Intervalo de consulta en segundos
+
+// OnInit
+int OnInit()
+{
+   Print("Tradyum RiskGuard inicializado correctamente.");
+   EventSetTimer(CheckIntervalS);
+   return(INIT_SUCCEEDED);
+}
+
+// OnDeinit
+void OnDeinit(const int reason)
+{
+   EventKillTimer();
+}
+
+// OnTimer
+void OnTimer()
+{
+   CheckTradyumLock();
+}
+
+// Core Risk Webhook
+void CheckTradyumLock()
+{
+   char post_data[];
+   char result_data[];
+   string headers = "Content-Type: application/json\\r\\n";
+   double today_pnl = AccountInfoDouble(ACCOUNT_PROFIT);
+   
+   string payload = StringFormat("{\\"account_id\\":\\"%s\\",\\"current_pnl\\":%f}", AccountID, today_pnl);
+   StringToCharArray(payload, post_data, 0, WHOLE_ARRAY, CP_UTF8);
+   
+   string out_headers;
+   int timeout = 5000;
+   
+   int res = WebRequest("POST", ServerUrl, headers, timeout, post_data, result_data, out_headers);
+   if(res == 200)
+   {
+      string response = CharArrayToString(result_data, 0, WHOLE_ARRAY, CP_UTF8);
+      if(StringFind(response, "\\"block\\":true") >= 0 || StringFind(response, "\\"block\\": true") >= 0)
+      {
+         Print("⚠️ [CRÍTICO] Bloqueo de pérdida diaria alcanzado. Cerrando posiciones...");
+         LiquidateAllPositions();
+      }
+   }
+}
+
+// Close Positions
+void LiquidateAllPositions()
+{
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         bool closed = OrderClose(OrderTicket(), OrderLots(), OrderClosePrice(), 3, clrRed);
+      }
+   }
+}
+`;
 
 interface ImportViewProps {
   accounts: Account[];
@@ -668,6 +743,61 @@ export const ImportView: React.FC<ImportViewProps> = ({
                 >
                   {isParsing ? 'Procesando...' : 'Analizar e Previsualizar'}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {selectedFormat === 'mt4_mt5' && (
+            <div id="mt4-integration-guide" className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 text-left animate-[fadeIn_0.2s_ease-out]">
+              <div className="flex items-start gap-4">
+                <div className="bg-indigo-500/10 text-indigo-400 p-3 rounded-xl border border-indigo-500/20">
+                  <Terminal className="w-5 h-5 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-display font-semibold text-sm text-slate-100">📟 Guía de Sincronización Automática (MetaTrader EA)</h3>
+                  <p className="text-xs text-slate-400">
+                    Sincroniza tu PnL en tiempo real y liquida de forma remota tu cuenta si vulneras las reglas de riesgo.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2.5 font-mono text-xs">
+                <div className="flex justify-between border-b border-slate-900 pb-1.5Packed">
+                  <span className="text-slate-500">ENDPOINT URL:</span>
+                  <span className="text-indigo-400 font-bold">/api/mt4-webhook</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                  <span className="text-slate-500">Frecuencia de Check:</span>
+                  <span className="text-slate-300">Cada 30 segundos</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Acción de Control:</span>
+                  <span className="text-rose-400 font-bold">Cerrar órdenes y desactivar AutoTrading</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-slate-450 text-slate-400">Código MQL Asesor Experto:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(mqlCode);
+                      alert("¡Código MQL copiado con éxito! Pégalo en MetaEditor, presiona 'Compilar' y arrástralo a tu gráfico de MetaTrader.");
+                    }}
+                    className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-mono cursor-pointer border-0 bg-transparent active:scale-95 transition-transform"
+                  >
+                    Copiar Código EA
+                  </button>
+                </div>
+                
+                <pre className="text-[10px] bg-slate-950 p-4 border border-slate-800/80 rounded-xl max-h-56 overflow-y-auto leading-relaxed text-indigo-300 font-mono scrollbar-thin">
+                  {mqlCode}
+                </pre>
+              </div>
+
+              <div className="text-[11px] text-slate-400 p-3.5 bg-indigo-500/5 rounded-xl border border-indigo-500/10 leading-snug">
+                <span className="font-semibold text-slate-200">💡 Instrucciones rápidas:</span> abre MetaEditor en tu terminal MT4/MT5, crea un nuevo Asesor Experto ("Expert Advisor"), pega este código reemplazando la plantilla original, ingresa el ID de tu cuenta como parámetro, y presiona <span className="text-slate-200 font-semibold">'Compilar'</span>. Tras esto, arrastra el EA desde el Navegador hacia cualquier activo del gráfico. Recuerda habilitar la opción de solicitudes HTTP WebRequest en Opciones del terminal.
               </div>
             </div>
           )}

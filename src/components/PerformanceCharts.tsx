@@ -48,7 +48,7 @@ export default function PerformanceCharts({ trades, userPlan = "Free", onUpgrade
     const stats: Record<string, { setup: string; win: number; total: number; pnl: number }> = {};
     
     trades.forEach(t => {
-      t.setups.forEach(setup => {
+      t.setups.forEach((setup: string) => {
         if (!stats[setup]) {
           stats[setup] = { setup, win: 0, total: 0, pnl: 0 };
         }
@@ -70,7 +70,7 @@ export default function PerformanceCharts({ trades, userPlan = "Free", onUpgrade
     const stats: Record<string, { mistake: string; count: number; cost: number }> = {};
     
     trades.forEach(t => {
-      t.mistakes.forEach(mistake => {
+      t.mistakes.forEach((mistake: string) => {
         if (!stats[mistake]) {
           stats[mistake] = { mistake, count: 0, cost: 0 };
         }
