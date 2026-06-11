@@ -154,10 +154,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   };
 
   const handleDeleteTradeLocal = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este trade permanentemente de Supabase?')) {
-      await onDeleteTrade(id);
-      setSelectedTrade(null);
-    }
+    await onDeleteTrade(id);
+    setSelectedTrade(null);
   };
 
   return (
