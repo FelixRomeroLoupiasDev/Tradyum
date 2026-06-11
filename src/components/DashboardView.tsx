@@ -142,33 +142,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Active account stats
   const activeAccount = accounts.find(a => a.id === activeAccountId);
 
-  // Calculate today's PnL for active account
-  const localToday = new Date();
-  const yccc = localToday.getFullYear();
-  const mccc = String(localToday.getMonth() + 1).padStart(2, '0');
-  const dccc = String(localToday.getDate()).padStart(2, '0');
-  const localTodayStr = `${yccc}-${mccc}-${dccc}`;
-
-  const todayTrades = activeAccount 
-    ? trades.filter(t => t.account_id === activeAccountId && t.exit_time && t.exit_time.split('T')[0] === localTodayStr)
-    : [];
-
-  const todayPnL = todayTrades.reduce((sum, t) => sum + (t.net_pnl || 0), 0);
-  const limitValue = activeAccount?.daily_loss_limit !== undefined ? activeAccount.daily_loss_limit : -200;
-  const absLimitValue = Math.abs(limitValue);
-
-  // Calculate percentage of limit reached
-  const currentLoss = todayPnL < 0 ? Math.abs(todayPnL) : 0;
-  const progressPct = absLimitValue > 0 ? Math.min((currentLoss / absLimitValue) * 100, 100) : 0;
-
-  // Status: VERDE (0-74%) / AMARILLO (75-99%) / ROJO (>=100% or is_blocked)
-  let riskStatus: 'VERDE' | 'AMARILLO' | 'ROJO' = 'VERDE';
-  if (activeAccount?.is_blocked || progressPct >= 100) {
-    riskStatus = 'ROJO';
-  } else if (progressPct >= 75) {
-    riskStatus = 'AMARILLO';
-  }
-
   return (
     <div id="dashboard-view-root" className="space-y-6">
       {/* View Header */}

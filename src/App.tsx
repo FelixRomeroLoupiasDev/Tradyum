@@ -212,129 +212,6 @@ export default function App() {
     }
   };
 
-  // Automatically evaluate and update daily risk blocking conditions
-  useEffect(() => {
-    if (appLoading) return;
-
-    const evalRiskLimits = async () => {
-      const localToday = new Date();
-      const yyyy = localToday.getFullYear();
-      const mm = String(localToday.getMonth() + 1).padStart(2, '0');
-      const dd = String(localToday.getDate()).padStart(2, '0');
-      const localTodayStr = `${yyyy}-${mm}-${dd}`;
-
-      let updatedState = false;
-      const nextAccounts = await Promise.all(accounts.map(async (acc) => {
-        // 1. Midnight Auto-Reset Check
-        if (acc.is_blocked && acc.blocked_at) {
-          const blockedDay = acc.blocked_at.split('T')[0];
-          if (blockedDay !== localTodayStr) {
-            updatedState = true;
-            console.log(`[Auto-Reset] Midnight reset for account ${acc.name}`);
-            const resetData = { is_blocked: false, blocked_at: null, block_reason: null };
-            if (!isOfflineMode) {
-              await supabase.from('accounts').update(resetData).eq('id', acc.id);
-            }
-            return { ...acc, ...resetData };
-          }
-        }
-
-        // 2. Evaluation of Daily drawdown vs loss limit
-        const accTrades = trades.filter(t => t.account_id === acc.id);
-        const todayTrades = accTrades.filter(t => t.exit_time && t.exit_time.split('T')[0] === localTodayStr);
-        const todayPnL = todayTrades.reduce((sum, t) => sum + (t.net_pnl || 0), 0);
-        const limit = acc.daily_loss_limit !== undefined ? acc.daily_loss_limit : -200;
-        const absLimit = Math.abs(limit);
-
-        // If daily loss reaches 100% of limits and is NOT already marked as blocked
-        if (todayPnL <= -absLimit && absLimit > 0 && !acc.is_blocked) {
-          updatedState = true;
-          const blockReason = `Límite diario de pérdida alcanzado (${todayPnL.toFixed(2)} <= -${absLimit})`;
-          const blockData = {
-            is_blocked: true,
-            blocked_at: new Date().toISOString(),
-            block_reason: blockReason
-          };
-
-          console.log(`[Riesgo Activo] Bloqueando cuenta ${acc.name}: ${blockReason}`);
-
-          if (!isOfflineMode) {
-            await supabase.from('accounts').update(blockData).eq('id', acc.id);
-          }
-
-          // Trigger remote position closure if Tradovate
-          if (acc.broker === 'tradovate') {
-            try {
-              await fetch('/api/tradovate/block', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  api_key: acc.api_key,
-                  api_secret: acc.api_secret,
-                  accountId: acc.id
-                })
-              });
-            } catch (err) {
-              console.error("[Tradovate positions close failed]", err);
-            }
-          }
-
-          // Trigger email notification
-          try {
-            await fetch('/api/send-email', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: currentUser?.email || 'user@tradyum.com',
-                subject: `🚫 LÍMITE DE PÉRDIDA DIARIA ALCANZADO [${acc.name}]`,
-                message: `Hola,\n\nTe informamos que tu cuenta "${acc.name}" ha alcanzado el límite de pérdida diaria configurado (-${absLimit}). El PnL total real-time de hoy es de ${todayPnL.toFixed(2)}.\n\nSe ha activado el bloqueo diario obligatorio de tu cuenta. Todo trading futuro ha sido suspendido y tus posiciones abiertas liquidadas hasta la medianoche.\n\nEquipo de Tradyum.`
-              })
-            });
-          } catch (err) {
-            console.error("[Email send failed]", err);
-          }
-
-          return { ...acc, ...blockData };
-        }
-
-        // 3. Email notifications for 90% threshold
-        const lossAmount = todayPnL < 0 ? Math.abs(todayPnL) : 0;
-        const pct = absLimit > 0 ? (lossAmount / absLimit) * 100 : 0;
-        if (pct >= 90 && pct < 100) {
-          const notifiedKey = `notified_90_${acc.id}_${localTodayStr}`;
-          if (!localStorage.getItem(notifiedKey)) {
-            localStorage.setItem(notifiedKey, 'true');
-            console.log(`[Riesgo 90%] Enviando alarma email para ${acc.name}`);
-            try {
-              await fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: currentUser?.email || 'user@tradyum.com',
-                  subject: `⚠️ ADVERTENCIA 90% DE LÍMITE DE PÉRDIDA [${acc.name}]`,
-                  message: `Hola,\n\nAtención: Tu cuenta "${acc.name}" se encuentra al ${pct.toFixed(0)}% de alcanzar su límite diario de Drawdown.\n\nPnL Actual: ${todayPnL.toFixed(2)} / Límite: -${absLimit}.\nToma precauciones de inmediato.\n\nEquipo de Tradyum.`
-                })
-              });
-            } catch (err) {
-              console.error("[90% email fail]", err);
-            }
-          }
-        }
-
-        return acc;
-      }));
-
-      if (updatedState) {
-        setAccounts(nextAccounts);
-        if (isOfflineMode) {
-          localStorage.setItem('tradyum_local_accounts', JSON.stringify(nextAccounts));
-        }
-      }
-    };
-
-    evalRiskLimits();
-  }, [trades, accounts, appLoading, isOfflineMode, currentUser]);
-
   // Seed sample mock data for offline simulation or new profiles
   const loadOfflineDemoData = () => {
     const cachedAccounts = localStorage.getItem('tradyum_local_accounts');
@@ -376,8 +253,6 @@ export default function App() {
           current_balance: 9340,
           is_active: true,
           color: '#10b981',
-          api_key: 'dummyKey',
-          api_secret: 'dummySecret',
           balance: 9340
         }
       ] as any;
@@ -497,9 +372,7 @@ export default function App() {
         initial_balance: payload.initial_balance || 0,
         current_balance: payload.current_balance || 0,
         is_active: true,
-        color: payload.color || '#3b82f6',
-        api_key: payload.api_key,
-        api_secret: payload.api_secret
+        color: payload.color || '#3b82f6'
       };
       const updated = [...accounts, newAcc];
       setAccounts(updated);

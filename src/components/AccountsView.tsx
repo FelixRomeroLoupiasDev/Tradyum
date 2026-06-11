@@ -4,13 +4,11 @@ import {
   Trash2, 
   Edit3, 
   Activity, 
-  Key, 
   Server, 
   Check, 
   X, 
   AlertTriangle,
   Coins,
-  ShieldCheck,
   TrendingUp
 } from 'lucide-react';
 import { Account, AccountType, BrokerType } from '../types';
@@ -44,9 +42,6 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
   const [initialBalance, setInitialBalance] = useState('50000');
   const [currentBalance, setCurrentBalance] = useState('50000');
   const [color, setColor] = useState('#3b82f6');
-  const [apiKey, setApiKey] = useState('');
-  const [apiSecret, setApiSecret] = useState('');
-  const [dailyLossLimit, setDailyLossLimit] = useState('200');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,9 +54,6 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
     setInitialBalance('50000');
     setCurrentBalance('50000');
     setColor('#3b82f6');
-    setApiKey('');
-    setApiSecret('');
-    setDailyLossLimit('200');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,9 +71,6 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
         initial_balance: parseFloat(initialBalance) || 0,
         current_balance: parseFloat(currentBalance) || parseFloat(initialBalance) || 0,
         color,
-        api_key: apiKey.trim() || undefined,
-        api_secret: apiSecret.trim() || undefined,
-        daily_loss_limit: -Math.abs(parseFloat(dailyLossLimit) || 200),
         is_active: true
       };
 
@@ -110,9 +99,6 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
     setInitialBalance(String(acc.initial_balance));
     setCurrentBalance(String(acc.current_balance));
     setColor(acc.color || '#3b82f6');
-    setApiKey(acc.api_key || '');
-    setApiSecret(acc.api_secret || '');
-    setDailyLossLimit(String(acc.daily_loss_limit ? Math.abs(acc.daily_loss_limit) : '200'));
     setIsCreating(true);
   };
 
@@ -264,40 +250,6 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             </div>
           </div>
 
-          {/* Tradovate API Integrations */}
-          {broker === 'tradovate' && (
-            <div id="tradovate-api-section" className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-4">
-              <div className="flex items-center gap-2 text-xs text-blue-400 font-semibold">
-                <Key className="w-4 h-4" /> Credenciales API Tradovate (Demo / Live)
-              </div>
-              <p className="text-[10px] text-slate-400 leading-relaxed">
-                Guarda tus claves API para sincronizar directamente tus trades. Las claves se encriptan con RLS de Supabase.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] font-mono text-slate-500 uppercase tracking-wider mb-1">API Key</label>
-                  <input
-                    type="password"
-                    placeholder="Tu Tradovate API Key"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:outline-none rounded-xl py-2 px-3 text-xs text-slate-200 transition-all font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-mono text-slate-500 uppercase tracking-wider mb-1">API Secret / Password</label>
-                  <input
-                    type="password"
-                    placeholder="Tu Tradovate API Secret"
-                    value={apiSecret}
-                    onChange={(e) => setApiSecret(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:outline-none rounded-xl py-2 px-3 text-xs text-slate-200 transition-all font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
           <div id="form-actions" className="flex gap-3 justify-end pt-3 border-t border-slate-800">
             <button
               id="submit-account-btn"
@@ -403,13 +355,6 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                     </button>
                   </div>
                 </div>
-
-                {/* API Synced indicator */}
-                {acc.api_key && (
-                  <div className="absolute top-3 right-3 text-[10px] text-blue-400 flex items-center gap-1 font-mono bg-blue-500/5 p-1 px-2 border border-blue-500/10 rounded-full">
-                    <ShieldCheck className="w-3 h-3" /> API Connect
-                  </div>
-                )}
               </div>
             );
           })}
