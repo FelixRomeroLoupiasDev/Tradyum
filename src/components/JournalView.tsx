@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   CheckCircle,
   FileEdit,
-  ArrowRightLeft
+  ArrowRightLeft,
+  AlertTriangle
 } from 'lucide-react';
 import { Trade, Account, TradeDirection, AssetClassType } from '../types';
 
@@ -36,6 +37,8 @@ export const JournalView: React.FC<JournalViewProps> = ({
   onAddTradeRequest
 }) => {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filters State
   const [symbolFilter, setSymbolFilter] = useState('');
@@ -155,9 +158,19 @@ export const JournalView: React.FC<JournalViewProps> = ({
     }
   };
 
-  const handleDeleteTradeLocal = async (id: string) => {
-    await onDeleteTrade(id);
-    setSelectedTrade(null);
+  const handleConfirmDelete = async () => {
+    if (!tradeToDelete) return;
+    setIsDeleting(true);
+    try {
+      await onDeleteTrade(tradeToDelete.id);
+      setSelectedTrade(null);
+      setTradeToDelete(null);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Error al eliminar: ${e.message || e}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -327,9 +340,9 @@ export const JournalView: React.FC<JournalViewProps> = ({
                 </div>
                 <div className="flex gap-1.5">
                   <button
-                    onClick={() => handleDeleteTradeLocal(selectedTrade.id)}
+                    onClick={() => setTradeToDelete(selectedTrade)}
                     className="p-1.5 rounded-lg bg-[#12071a] border border-purple-950/40 hover:bg-rose-500/10 hover:text-rose-400 transition-colors cursor-pointer text-slate-400"
-                    title="Eliminar Trade de Supabase"
+                    title="Eliminar Trade"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -539,6 +552,73 @@ export const JournalView: React.FC<JournalViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Custom Delete Confirmation Modal */}
+      {tradeToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#130f22]/85 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-[420px] bg-[#1e152d] border border-[#c084fc]/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.85)] p-6 space-y-5 flex flex-col text-center animate-in fade-in zoom-in-95 duration-200">
+            {/* Warning Icon and Glow */}
+            <div className="relative mx-auto mt-2 select-none">
+              <div className="absolute -inset-2.5 rounded-full bg-rose-500/20 opacity-75 blur-md" />
+              <div className="relative w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                <AlertTriangle className="w-6 h-6 text-rose-400" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-display font-semibold text-slate-100 text-base">¿Deseas eliminar esta transacción?</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Esta acción no se puede deshacer y ajustará el balance de tu cuenta de trading de manera definitiva.
+              </p>
+            </div>
+
+            {/* Quick overview of the trade to delete */}
+            <div className="bg-[#12071a] border border-[#c084fc]/10 rounded-xl p-3.5 space-y-2 text-left font-mono text-[11px]">
+              <div className="flex justify-between items-center text-purple-300">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Activo:</span>
+                <span className="font-sans font-bold text-slate-200">{tradeToDelete.symbol}</span>
+              </div>
+              <div className="flex justify-between items-center text-purple-300">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Dirección:</span>
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${tradeToDelete.direction === 'long' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                  {tradeToDelete.direction.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-purple-300">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Resultado Neto:</span>
+                <span className={`font-bold ${tradeToDelete.net_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {tradeToDelete.net_pnl >= 0 ? '+' : ''}{tradeToDelete.net_pnl.toFixed(2)} USD
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setTradeToDelete(null)}
+                className="px-4 py-2.5 rounded-xl bg-[#12071a] border border-[#c084fc]/10 text-slate-400 hover:text-white hover:bg-purple-950/45 transition-all font-semibold text-xs cursor-pointer focus:outline-none disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:opacity-90 text-white font-bold text-xs cursor-pointer shadow-lg shadow-rose-500/15 transition-all flex items-center justify-center gap-2 focus:outline-none disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                {isDeleting ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
