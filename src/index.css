@@ -10,19 +10,19 @@
   }
 
   body {
-    @apply bg-slate-950 text-slate-100 font-sans;
+    @apply bg-[#0f0917] text-[#ebe7f2] font-sans;
   }
 
-  /* Custom Scrollbar */
+  /* Custom Scrollbar styled for dark orchid theme */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-slate-950/40;
+    @apply bg-[#0f0917];
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+    @apply bg-[#2d1b3e] rounded-full hover:bg-[#3d2554] transition-colors;
   }
 }
 
@@ -38,21 +38,21 @@
   }
 }
 
-/* Custom styles for animations and dashboard */
+/* Custom premium styles matching the dark-purple dashboard reference image */
 .glass-panel {
-  @apply bg-slate-900/60 backdrop-blur-md border border-slate-800/80 shadow-xl;
+  @apply bg-[#170e20]/90 backdrop-blur-md border border-[#c084fc]/15 shadow-[0_8px_32px_0_rgba(15,9,23,0.65)];
 }
 
 .glow-blue {
-  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.2);
 }
 
 .glow-emerald {
-  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 25px -5px rgba(236, 72, 153, 0.15);
 }
 
 .glow-rose {
-  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.15);
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.2);
 }
 
 /* Month calendar grid ratios */

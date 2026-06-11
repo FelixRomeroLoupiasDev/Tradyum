@@ -173,29 +173,29 @@ export const JournalView: React.FC<JournalViewProps> = ({
       </div>
 
       {/* Filters Bar */}
-      <div id="filters-panel" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div id="filters-panel" className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         {/* Symbol filter */}
         <div>
-          <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Buscar Símbolo</label>
+          <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Buscar Símbolo</label>
           <div className="relative">
             <input
               type="text"
               placeholder="ej. NQ, EURUSD, BTC"
               value={symbolFilter}
               onChange={(e) => setSymbolFilter(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl pl-9 pr-3.5 py-2 text-xs font-sans text-slate-200 focus:outline-none transition-all"
+              className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl pl-9 pr-3.5 py-2 text-xs font-sans text-slate-200 focus:outline-none transition-all"
             />
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-purple-400/50 absolute left-3 top-2.5" />
           </div>
         </div>
 
         {/* Direction filter */}
         <div>
-          <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Dirección de Trade</label>
+          <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Dirección de Trade</label>
           <select
             value={directionFilter}
             onChange={(e) => setDirectionFilter(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs font-sans text-slate-200 focus:outline-none transition-all cursor-pointer"
+            className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl px-3 py-2 text-xs font-sans text-slate-200 focus:outline-none transition-all cursor-pointer"
           >
             <option value="all">Todos los lados</option>
             <option value="long">Long (Largos)</option>
@@ -205,23 +205,23 @@ export const JournalView: React.FC<JournalViewProps> = ({
 
         {/* Date From */}
         <div>
-          <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Fecha Desde</label>
+          <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Fecha Desde</label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs font-sans text-slate-200 focus:outline-none transition-all cursor-pointer"
+            className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl px-3 py-1.5 text-xs font-sans text-slate-200 focus:outline-none transition-all cursor-pointer"
           />
         </div>
 
         {/* Date To */}
         <div>
-          <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Fecha Hasta</label>
+          <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Fecha Hasta</label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-1.5 text-xs font-sans text-slate-200 focus:outline-none transition-all cursor-pointer"
+            className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl px-3 py-1.5 text-xs font-sans text-slate-200 focus:outline-none transition-all cursor-pointer"
           />
         </div>
       </div>
@@ -229,16 +229,16 @@ export const JournalView: React.FC<JournalViewProps> = ({
       {/* Main Splits Panel */}
       <div id="journal-view-splits-grid" className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Trades Table List */}
-        <div className={`lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden`}>
-          <div className="p-4 border-b border-slate-800/80 bg-slate-900/40 flex items-center justify-between">
-            <span className="text-xs font-mono uppercase tracking-wider text-slate-400">Listado de Operaciones ({sortedTrades.length})</span>
-            <span className="text-[10px] font-mono text-slate-500">Haz click en una fila para ver el detalle psicológico</span>
+        <div className={`lg:col-span-2 bg-[#180e22] border border-[#c084fc]/15 rounded-2xl overflow-hidden`}>
+          <div className="p-4 border-b border-[#c084fc]/10 bg-[#12071a]/40 flex items-center justify-between">
+            <span className="text-xs font-mono uppercase tracking-wider text-purple-300">Listado de Operaciones ({sortedTrades.length})</span>
+            <span className="text-[10px] font-mono text-purple-400/50">Haz click en una fila para ver el detalle psicológico</span>
           </div>
 
           <div className="overflow-x-auto max-h-[500px]">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-[10px] font-mono text-slate-500 tracking-wider uppercase bg-slate-950/20">
+                <tr className="border-b border-[#c084fc]/10 text-[10px] font-mono text-purple-400/60 tracking-wider uppercase bg-[#12071a]/20">
                   <th className="p-3.5">F. Cierre</th>
                   <th className="p-3.5">Activo</th>
                   <th className="p-3.5">Dirección</th>
@@ -255,17 +255,17 @@ export const JournalView: React.FC<JournalViewProps> = ({
                     <tr
                       key={tr.id}
                       onClick={() => handleSelectTrade(tr)}
-                      className={`border-b border-slate-800/60 hover:bg-slate-800/20 text-xs font-mono cursor-pointer transition-all ${isSelected ? 'bg-blue-600/5 hover:bg-blue-600/10 border-l-4 border-l-blue-500' : ''}`}
+                      className={`border-b border-[#c084fc]/5 hover:bg-purple-950/25 text-xs font-mono cursor-pointer transition-all ${isSelected ? 'bg-[#c084fc]/10 hover:bg-[#c084fc]/15 border-l-4 border-l-[#c084fc]' : ''}`}
                     >
-                      <td className="p-3.5 text-slate-500">{dateForm}</td>
-                      <td className="p-3.5 font-bold text-slate-200 font-sans">{tr.symbol}</td>
+                      <td className="p-3.5 text-purple-400/60">{dateForm}</td>
+                      <td className="p-3.5 font-bold text-slate-250 font-sans">{tr.symbol}</td>
                       <td className="p-3.5">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tr.direction === 'long' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                           {tr.direction.toUpperCase()}
                         </span>
                       </td>
-                      <td className="p-3.5 text-slate-400">{tr.quantity}</td>
-                      <td className="p-3.5 text-slate-500">
+                      <td className="p-3.5 text-purple-300/60">{tr.quantity}</td>
+                      <td className="p-3.5 text-purple-400/40">
                         {tr.entry_price.toFixed(2)} → {tr.exit_price.toFixed(2)}
                       </td>
                       <td className={`p-3.5 font-bold text-right ${tr.net_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -278,7 +278,7 @@ export const JournalView: React.FC<JournalViewProps> = ({
             </table>
 
             {sortedTrades.length === 0 && (
-              <div className="p-8 text-center text-xs text-slate-500 font-mono">
+              <div className="p-8 text-center text-xs text-purple-400/40 font-mono">
                 Ninguna operación encontrada para los criterios indicados.
               </div>
             )}
@@ -288,24 +288,24 @@ export const JournalView: React.FC<JournalViewProps> = ({
         {/* Trade Details / Psychological Editor Drawer */}
         <div id="psychology-drawer" className="lg:col-span-1">
           {selectedTrade ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-lg relative max-h-[650px] overflow-y-auto">
+            <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 space-y-5 shadow-lg relative max-h-[650px] overflow-y-auto">
               {/* Drawer Top */}
-              <div className="flex items-start justify-between pb-3 border-b border-slate-800/80">
+              <div className="flex items-start justify-between pb-3 border-b border-purple-950/30">
                 <div className="text-left">
                   <h3 className="font-display font-semibold text-slate-100 text-sm">Bitácora Detalle</h3>
-                  <span className="text-[10px] font-mono text-blue-400 font-semibold">{selectedTrade.symbol} • Trade {selectedTrade.direction.toUpperCase()}</span>
+                  <span className="text-[10px] font-mono text-[#ebd7ff] font-semibold">{selectedTrade.symbol} • Trade {selectedTrade.direction.toUpperCase()}</span>
                 </div>
                 <div className="flex gap-1.5">
                   <button
                     onClick={() => handleDeleteTradeLocal(selectedTrade.id)}
-                    className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-rose-500/10 hover:text-rose-400 transition-colors cursor-pointer text-slate-400"
+                    className="p-1.5 rounded-lg bg-[#12071a] border border-purple-950/40 hover:bg-rose-500/10 hover:text-rose-400 transition-colors cursor-pointer text-slate-400"
                     title="Eliminar Trade de Supabase"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setSelectedTrade(null)}
-                    className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-800 transition-colors cursor-pointer text-slate-400"
+                    className="p-1.5 rounded-lg bg-[#12071a] border border-purple-950/40 hover:bg-purple-950/50 transition-colors cursor-pointer text-slate-400"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -313,31 +313,31 @@ export const JournalView: React.FC<JournalViewProps> = ({
               </div>
 
               {/* Exact financial metrics */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800/50 font-mono text-[11px] text-slate-400">
+              <div className="grid grid-cols-2 gap-3 bg-[#12071a] p-3.5 rounded-xl border border-purple-950/40 font-mono text-[11px] text-purple-300/60">
                 <div>
-                  <span className="text-[9px] text-slate-500 block uppercase font-bold">PnL Neto</span>
+                  <span className="text-[9px] text-purple-400/50 block uppercase font-bold">PnL Neto</span>
                   <span className={`text-sm font-bold ${selectedTrade.net_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {selectedTrade.net_pnl >= 0 ? '+' : ''}{selectedTrade.net_pnl.toFixed(2)} USD
                   </span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-slate-500 block uppercase font-bold">Comisión</span>
+                  <span className="text-[9px] text-purple-400/50 block uppercase font-bold">Comisión</span>
                   <span className="text-xs font-semibold text-slate-200">{selectedTrade.commission.toFixed(2)} USD</span>
                 </div>
 
                 <div>
-                  <span className="text-[9px] text-slate-500 block uppercase font-bold">Precio Entrada</span>
-                  <span className="text-xs text-slate-300 font-bold">{selectedTrade.entry_price.toFixed(2)}</span>
+                  <span className="text-[9px] text-purple-400/50 block uppercase font-bold">Precio Entrada</span>
+                  <span className="text-xs text-purple-300 font-bold">{selectedTrade.entry_price.toFixed(2)}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-slate-500 block uppercase font-bold">Precio Salida</span>
-                  <span className="text-xs text-slate-300 font-bold">{selectedTrade.exit_price.toFixed(2)}</span>
+                  <span className="text-[9px] text-purple-400/50 block uppercase font-bold">Precio Salida</span>
+                  <span className="text-xs text-purple-300 font-bold">{selectedTrade.exit_price.toFixed(2)}</span>
                 </div>
               </div>
 
               {/* 1-5 Star Selection */}
               <div className="text-left space-y-1.5">
-                <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider px-0.5">Rating (Calidad del trade)</label>
+                <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider px-0.5">Rating (Calidad del trade)</label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((starNum) => (
                     <button

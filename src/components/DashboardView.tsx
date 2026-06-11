@@ -185,9 +185,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Bento-style Metrics Grid */}
           <div id="metrics-grid" className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Net PnL Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors">
+            <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-[#c084fc]/30 transition-all shadow-md">
               <div className="flex items-start justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">PnL Neto Total</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-purple-300/60">PnL Neto Total</span>
                 <div className={`p-1.5 rounded-lg ${totalNetPnl >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                   {totalNetPnl >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                 </div>
@@ -196,35 +196,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <h3 className={`text-xl font-bold font-mono tracking-tight ${totalNetPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {totalNetPnl >= 0 ? '+' : ''}{formattedTotalPnl}
                 </h3>
-                <span className="text-[10px] text-slate-400 block mt-1">Con comisiones descontadas</span>
+                <span className="text-[10px] text-purple-300/40 block mt-1">Con comisiones descontadas</span>
               </div>
               {/* background vector accent */}
               <div className={`absolute -right-4 -bottom-4 w-16 h-16 rounded-full opacity-5 pointer-events-none ${totalNetPnl >= 0 ? 'bg-emerald-400' : 'bg-rose-400'}`} />
             </div>
 
             {/* Win Rate Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors">
+            <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-[#c084fc]/30 transition-all shadow-md">
               <div className="flex items-start justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">Porcentaje Acierto (Win Rate)</span>
-                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-purple-300/60">Porcentaje Acierto (Win Rate)</span>
+                <div className="p-1.5 rounded-lg bg-fuchsia-500/10 text-fuchsia-400">
                   <Percent className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-4">
-                <h3 className="text-xl font-bold font-mono tracking-tight text-blue-400">
+                <h3 className="text-xl font-bold font-mono tracking-tight text-fuchsia-400">
                   {winRate.toFixed(1)}%
                 </h3>
-                <span className="text-[10px] text-slate-400 block mt-1">
+                <span className="text-[10px] text-purple-300/40 block mt-1">
                   Ganadores: {winsCount} / Totales: {totalClosedCount}
                 </span>
               </div>
             </div>
 
             {/* Profit Factor Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors">
+            <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-[#c084fc]/30 transition-all shadow-md">
               <div className="flex items-start justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">Factor Beneficio (Profit Factor)</span>
-                <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-purple-300/60">Factor Beneficio (Profit Factor)</span>
+                <div className="p-1.5 rounded-lg bg-[#b673eb]/10 text-[#d8b4fe]">
                   <Calculator className="w-4 h-4" />
                 </div>
               </div>
@@ -232,25 +232,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <h3 className={`text-xl font-bold font-mono tracking-tight ${profitFactor >= 1.5 ? 'text-emerald-400' : profitFactor >= 1.0 ? 'text-slate-200' : 'text-rose-400'}`}>
                   {profitFactor === 99.9 ? '∞' : profitFactor.toFixed(2)}
                 </h3>
-                <span className="text-[10px] text-slate-400 block mt-1">
+                <span className="text-[10px] text-purple-300/40 block mt-1">
                   Bruto: +${grossProfit.toFixed(0)} / -${grossLoss.toFixed(0)}
                 </span>
               </div>
             </div>
 
             {/* Total Trades Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-slate-700 transition-colors">
+            <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between hover:border-[#c084fc]/30 transition-all shadow-md">
               <div className="flex items-start justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">Trades Registrados</span>
-                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-purple-300/60">Trades Registrados</span>
+                <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500">
                   <Activity className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-4">
-                <h3 className="text-xl font-bold font-mono tracking-tight text-slate-200">
+                <h3 className="text-xl font-bold font-mono tracking-tight text-[#ebd7ff]">
                   {totalTradesCount}
                 </h3>
-                <span className="text-[10px] text-slate-400 block mt-1">Operaciones en la BD</span>
+                <span className="text-[10px] text-purple-300/40 block mt-1">Operaciones en la BD</span>
               </div>
             </div>
           </div>
@@ -258,43 +258,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Secondary stats bento */}
           <div id="secondary-stats-row" className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* Streaks */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-[#180e22]/85 border border-[#c084fc]/15 rounded-xl p-4 flex items-center gap-3">
               <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
                 <Flame className="w-4 h-4" />
               </div>
               <div className="text-left font-mono">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Racha Ganadora Max</p>
+                <p className="text-[10px] text-purple-300/50 uppercase tracking-wide">Racha Ganadora Max</p>
                 <h4 className="text-sm font-bold text-emerald-400">{maxWinStreak} trades</h4>
               </div>
             </div>
 
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-[#180e22]/85 border border-[#c084fc]/15 rounded-xl p-4 flex items-center gap-3">
               <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg">
                 <FlameKindling className="w-4 h-4" />
               </div>
               <div className="text-left font-mono">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Racha Perdedora Max</p>
+                <p className="text-[10px] text-purple-300/50 uppercase tracking-wide">Racha Perdedora Max</p>
                 <h4 className="text-sm font-bold text-rose-400">{maxLossStreak} trades</h4>
               </div>
             </div>
 
             {/* Best / Worst Trade */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-[#180e22]/85 border border-[#c084fc]/15 rounded-xl p-4 flex items-center gap-3">
               <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
                 <Zap className="w-4 h-4" />
               </div>
               <div className="text-left font-mono overflow-hidden">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide truncate">Mejor Trade</p>
+                <p className="text-[10px] text-purple-300/50 uppercase tracking-wide truncate">Mejor Trade</p>
                 <h4 className="text-xs font-bold text-emerald-400 truncate">+{formattedBestTrade}</h4>
               </div>
             </div>
 
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-[#180e22]/85 border border-[#c084fc]/15 rounded-xl p-4 flex items-center gap-3">
               <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg">
                 <TrendingDown className="w-4 h-4" />
               </div>
               <div className="text-left font-mono overflow-hidden">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide truncate">Peor Trade</p>
+                <p className="text-[10px] text-purple-300/50 uppercase tracking-wide truncate">Peor Trade</p>
                 <h4 className="text-xs font-bold text-rose-400 truncate">{formattedWorstTrade}</h4>
               </div>
             </div>
@@ -303,10 +303,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Equity Curve & Symbol breakdown charts */}
           <div id="dashboard-charts-grid" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Cumulative Equity Curve Chart */}
-            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="lg:col-span-2 bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 space-y-4">
               <div>
-                <h4 className="font-display font-medium text-slate-200">Curva de Equidad (Equity Curve)</h4>
-                <p className="text-[11px] text-slate-400">Balance acumulado transaccionado a lo largo de las operaciones.</p>
+                <h4 className="font-display font-medium text-[#ebd7ff]">Curva de Equidad (Equity Curve)</h4>
+                <p className="text-[11px] text-purple-300/60">Balance acumulado transaccionado a lo largo de las operaciones.</p>
               </div>
 
               <div className="h-72 w-full pt-4">
@@ -317,20 +317,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   >
                     <defs>
                       <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#d946ef" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="#d946ef" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2a1640" />
                     <XAxis 
                       dataKey="tradeIndex" 
-                      stroke="#475569" 
+                      stroke="#8b5cf6" 
                       fontSize={10} 
                       fontFamily="JetBrains Mono"
                       tickLine={false}
                     />
                     <YAxis 
-                      stroke="#475569" 
+                      stroke="#8b5cf6" 
                       fontSize={10} 
                       fontFamily="JetBrains Mono"
                       tickLine={false}
@@ -341,21 +341,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           const data = payload[0].payload;
                           if (data.tradeIndex === 0) return null;
                           return (
-                            <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl font-mono text-[11px] space-y-1 shadow-2xl">
-                              <p className="text-slate-400 border-b border-slate-800 pb-1 mb-1 font-bold">Trade N°{data.tradeIndex}</p>
+                            <div className="bg-[#12071a] border border-[#c084fc]/30 p-3 rounded-xl font-mono text-[11px] space-y-1 shadow-2xl">
+                              <p className="text-purple-300 border-b border-[#c084fc]/15 pb-1 mb-1 font-bold">Trade N°{data.tradeIndex}</p>
                               <div>
-                                <span className="text-slate-500">Símbolo: </span>
+                                <span className="text-purple-400/60">Símbolo: </span>
                                 <span className="text-slate-200 font-sans font-semibold">{data.symbol}</span>
                               </div>
                               <div>
-                                <span className="text-slate-500">PnL Trade: </span>
+                                <span className="text-purple-400/60">PnL Trade: </span>
                                 <span className={data.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}>
                                   {data.pnl >= 0 ? '+' : ''}{data.pnl} USD
                                 </span>
                               </div>
                               <div>
-                                <span className="text-slate-500">Equity: </span>
-                                <span className="text-blue-400 font-semibold">${data.equity} USD</span>
+                                <span className="text-purple-400/60">Equity: </span>
+                                <span className="text-fuchsia-400 font-semibold">${data.equity} USD</span>
                               </div>
                             </div>
                           );
@@ -367,7 +367,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <Area 
                       type="monotone" 
                       dataKey="equity" 
-                      stroke="#3b82f6" 
+                      stroke="#d946ef" 
                       strokeWidth={2}
                       fillOpacity={1} 
                       fill="url(#equityGradient)" 
@@ -378,21 +378,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             {/* Performance by Symbol bar */}
-            <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+            <div className="lg:col-span-1 bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5 flex flex-col justify-between">
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-display font-medium text-slate-200">PnL por Símbolo</h4>
-                  <p className="text-[11px] text-slate-400">Rendimiento agrupado por activo financiero.</p>
+                  <h4 className="font-display font-medium text-[#ebd7ff]">PnL por Símbolo</h4>
+                  <p className="text-[11px] text-purple-300/60">Rendimiento agrupado por activo financiero.</p>
                 </div>
 
                 <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                   {pnlBySymbolData.map((st, idx) => {
                     const isProfit = st.pnl >= 0;
                     return (
-                      <div key={idx} className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                      <div key={idx} className="bg-[#12071a] p-3 rounded-xl border border-purple-950/40 flex items-center justify-between">
                         <div className="text-left font-mono">
-                          <p className="text-xs font-bold text-slate-200">{st.name}</p>
-                          <span className="text-[9px] text-slate-500 font-sans block mt-0.5">
+                          <p className="text-xs font-bold text-[#ebd7ff]">{st.name}</p>
+                          <span className="text-[9px] text-purple-400/50 font-sans block mt-0.5">
                             {st.total} trades • {st.winRate}% SR
                           </span>
                         </div>
@@ -406,7 +406,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
 
               {/* Extra visual pie/bar placeholder */}
-              <div className="pt-4 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono text-slate-400">
+              <div className="pt-4 border-t border-[#c084fc]/10 flex items-center justify-between text-[11px] font-mono text-purple-300/60">
                 <span>Total Activos: {pnlBySymbolData.length}</span>
                 <span className={`flex items-center gap-1 ${totalNetPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   Rendimiento Neto General

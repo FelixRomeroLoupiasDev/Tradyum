@@ -123,19 +123,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         {/* Month selector controls */}
-        <div id="month-carousel" className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+        <div id="month-carousel" className="flex items-center gap-2 bg-[#180e22] border border-[#c084fc]/15 p-1.5 rounded-xl">
           <button
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#12071a] text-purple-400 hover:text-[#ebd7ff] cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span id="carousel-current-month" className="text-xs font-semibold font-display text-slate-200 px-3 min-w-[100px] text-center">
+          <span id="carousel-current-month" className="text-xs font-semibold font-display text-[#ebd7ff] px-3 min-w-[100px] text-center">
             {monthNames[currentMonth]} {currentYear}
           </span>
           <button
             onClick={handleNextMonth}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#12071a] text-purple-400 hover:text-[#ebd7ff] cursor-pointer transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -144,33 +144,33 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Month metrics card */}
       <div id="calendar-stats-row" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-xl font-mono text-left">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">PnL del Mes</p>
+        <div className="bg-[#180e22] border border-[#c084fc]/15 p-4 rounded-xl font-mono text-left">
+          <p className="text-[10px] text-purple-400/50 uppercase tracking-wide">PnL del Mes</p>
           <h4 className={`text-sm font-bold mt-1 ${monthPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             {monthPnl >= 0 ? '+' : ''}{new Intl.NumberFormat('es-US', { style: 'currency', currency: 'USD' }).format(monthPnl)}
           </h4>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-xl font-mono text-left">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Días Verdes</p>
+        <div className="bg-[#180e22] border border-[#c084fc]/15 p-4 rounded-xl font-mono text-left">
+          <p className="text-[10px] text-purple-400/50 uppercase tracking-wide">Días Verdes</p>
           <h4 className="text-sm font-bold text-emerald-400 mt-1">{monthWinningDays} días</h4>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-xl font-mono text-left">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Días Rojos</p>
+        <div className="bg-[#180e22] border border-[#c084fc]/15 p-4 rounded-xl font-mono text-left">
+          <p className="text-[10px] text-purple-400/50 uppercase tracking-wide">Días Rojos</p>
           <h4 className="text-sm font-bold text-rose-400 mt-1">{monthLosingDays} días</h4>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-xl font-mono text-left">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Operaciones Totales</p>
-          <h4 className="text-sm font-bold text-blue-400 mt-1">{monthTradesCount} trades</h4>
+        <div className="bg-[#180e22] border border-[#c084fc]/15 p-4 rounded-xl font-mono text-left">
+          <p className="text-[10px] text-purple-400/50 uppercase tracking-wide">Operaciones Totales</p>
+          <h4 className="text-sm font-bold text-fuchsia-400 mt-1">{monthTradesCount} trades</h4>
         </div>
       </div>
 
       {/* Main Calendar Grid Canvas */}
-      <div id="calendar-grid-card" className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+      <div id="calendar-grid-card" className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-5">
         {/* Days of Week Row Header */}
-        <div className="grid grid-cols-7 gap-2 pb-3 mb-2 border-b border-slate-800 font-mono text-[11px] text-slate-500 text-center font-semibold">
+        <div className="grid grid-cols-7 gap-2 pb-3 mb-2 border-b border-[#c084fc]/10 font-mono text-[11px] text-purple-400/60 text-center font-semibold">
           {daysOfWeek.map((day, dIdx) => (
             <div key={dIdx}>{day}</div>
           ))}
@@ -183,7 +183,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               return (
                 <div 
                   key={`pad-${cellIdx}`} 
-                  className="aspect-[4/3] bg-slate-950/20 border border-slate-900/40 rounded-xl"
+                  className="aspect-[4/3] bg-[#12071a]/20 border border-purple-950/40 rounded-xl"
                 />
               );
             }
@@ -214,12 +214,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       ? 'bg-emerald-500/10 border-emerald-500/30 group hover:border-emerald-500'
                       : isRed
                         ? 'bg-rose-500/10 border-rose-500/30 group hover:border-rose-500'
-                        : 'bg-slate-800/60 border-slate-700/60 group hover:border-slate-500'
-                    : 'bg-slate-950/40 border-slate-850 hover:bg-slate-900/60 text-slate-500'
+                        : 'bg-[#2a1640] border-purple-500/30 group hover:border-purple-500'
+                    : 'bg-[#12071a]/40 border-purple-950/40 hover:bg-[#1d0f2b]/60 text-purple-400/40'
                 }`}
               >
                 {/* Day Number */}
-                <span className={`text-[11px] font-mono font-semibold ${hasTrades ? 'text-slate-300' : 'text-slate-500'}`}>
+                <span className={`text-[11px] font-mono font-semibold ${hasTrades ? 'text-slate-300' : 'text-purple-400/50'}`}>
                   {dayNum}
                 </span>
 
@@ -229,7 +229,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <p className={`text-[10px] md:text-[11px] font-bold font-mono tracking-tight leading-none ${isGreen ? 'text-emerald-400' : isRed ? 'text-rose-400' : 'text-slate-300'}`}>
                       {isGreen ? '+' : ''}{dayNetPnl.toFixed(0)}
                     </p>
-                    <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
+                    <span className="text-[8px] font-mono text-purple-400/50 block mt-0.5">
                       {dayTrades.length} Tr • {winRate.toFixed(0)}%
                     </span>
                   </div>
@@ -237,12 +237,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 {/* Popup Tooltip Hover Indicator */}
                 {hasTrades && (
-                  <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 bg-slate-950 border border-slate-800 p-2.5 rounded-lg z-20 min-w-[140px] text-[10px] leading-normal font-mono shadow-2xl mb-1 text-slate-300">
-                    <p className="text-slate-400 border-b border-slate-800 pb-1 font-bold mb-1">
+                  <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 bg-[#12071a] border border-[#c084fc]/30 p-2.5 rounded-lg z-20 min-w-[140px] text-[10px] leading-normal font-mono shadow-2xl mb-1 text-slate-300">
+                    <p className="text-purple-300 border-b border-[#c084fc]/15 pb-1 font-bold mb-1">
                       {dayNum} {monthNames[currentMonth]}
                     </p>
                     <div>
-                      Trades: <span className="text-blue-400 font-semibold">{dayTrades.length}</span>
+                      Trades: <span className="text-fuchsia-400 font-semibold">{dayTrades.length}</span>
                     </div>
                     <div>
                       Win Rate: <span className="text-emerald-400 font-semibold">{winRate.toFixed(1)}%</span>

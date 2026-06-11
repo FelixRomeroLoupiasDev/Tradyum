@@ -24,6 +24,7 @@ import { DashboardView } from './components/DashboardView';
 import { JournalView } from './components/JournalView';
 import { CalendarView } from './components/CalendarView';
 import { AccountsView } from './components/AccountsView';
+import { AppLogo } from './components/AppLogo';
 
 export default function App() {
   // Authentication & Session
@@ -36,6 +37,7 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [authLogoZoom, setAuthLogoZoom] = useState<number>(1.1);
 
   // Core Applet State
   const [activeTab, setActiveTab] = useState<'dashboard' | 'journal' | 'calendar' | 'accounts'>('dashboard');
@@ -719,77 +721,112 @@ export default function App() {
   };
 
   return (
-    <div id="full-app-root" className="min-h-screen bg-slate-950 flex font-sans text-slate-100">
+    <div id="full-app-root" className="min-h-screen bg-[#0c0415] flex font-sans text-slate-100">
       
       {appLoading ? (
         /* Loader spinner */
-        <div id="app-loading-spinner" className="min-h-screen flex-1 bg-slate-950 flex flex-col items-center justify-center gap-4">
-          <div className="inline-block w-8 h-8 border-4 border-t-blue-500 border-slate-900 rounded-full animate-spin" />
-          <p className="text-xs font-mono text-slate-500 tracking-wider">Cargando Terminal Tradyum...</p>
+        <div id="app-loading-spinner" className="min-h-screen flex-1 bg-[#12071a] flex flex-col items-center justify-center gap-4">
+          <div className="inline-block w-8 h-8 border-4 border-t-[#c084fc] border-[#2a1640] rounded-full animate-spin" />
+          <p className="text-xs font-mono text-purple-400/60 tracking-wider">Cargando Terminal Tradyum...</p>
         </div>
       ) : isOfflineMode && !currentUser ? (
         /* SPlit Authentic login / local demo dashboard page */
-        <div id="auth-portal" className="min-h-screen flex-1 flex flex-col md:flex-row bg-slate-950 overflow-hidden relative">
+        <div id="auth-portal" className="min-h-screen flex-1 flex flex-col md:flex-row bg-[#0a0210] overflow-hidden relative">
           
           {/* Subtle cosmic circle decorations */}
-          <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
+          <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-fuchsia-500/5 blur-3xl pointer-events-none" />
 
           {/* Left Panel: Presentation branding */}
-          <div id="auth-branding-panel" className="flex-1 p-8 md:p-16 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-900 bg-slate-950">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/10">
-                <TrendingUp className="w-5.5 h-5.5 text-white" />
-              </div>
+          <div id="auth-branding-panel" className="flex-1 p-8 md:p-16 flex flex-col justify-between border-b md:border-b-0 md:border-r border-purple-950/20 bg-[#0d0415]">
+            <div className="flex items-center gap-3 text-left">
+              <AppLogo size={40} />
               <h1 className="font-display font-bold text-xl tracking-tight text-white">Tradyum</h1>
             </div>
 
-            <div className="max-w-md space-y-6 my-12">
-              <div className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full py-1 px-3 text-[10px] font-mono font-bold uppercase tracking-wider">
+            <div className="max-w-md space-y-6 my-8 text-left">
+              <div className="inline-flex items-center gap-1.5 bg-purple-500/10 text-purple-300 border border-[#c084fc]/20 rounded-full py-1 px-3 text-[10px] font-mono font-bold uppercase tracking-wider">
                 <Globe className="w-3.5 h-3.5" /> Sincronización en la Nube
               </div>
               
-              <h2 className="font-display font-bold text-3xl leading-tight tracking-tight text-slate-100 md:text-4xl text-left">
+              <h2 className="font-display font-semibold text-3xl leading-tight tracking-tight text-[#ebd7ff] md:text-3xl text-left">
                 El diario donde la psicología se encuentra con las matemáticas.
               </h2>
               
-              <p className="text-slate-400 text-xs leading-relaxed text-left">
+              <p className="text-purple-300/60 text-xs leading-relaxed text-left">
                 Llevar una bitácora científica es la clave de todo trader consistente. Tradyum te ofrece un entorno unificado con calendarización de calor, calculadora de factor beneficio, ratios de rachas, análisis emocional y multicuenta segura con Supabase.
               </p>
 
-              <div className="grid grid-cols-2 gap-4 pt-3">
-                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 text-left">
-                  <span className="text-[9px] font-mono text-blue-400 font-bold uppercase block mb-1">Cero Fricción</span>
-                  <p className="text-[11px] text-slate-400 leading-normal">Modulo de importación inteligente para NinjaTrader, Tradovate y MetaTrader.</p>
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-4 text-left">
+                  <span className="text-[9px] font-mono text-[#ebd7ff] font-bold uppercase block mb-1">Cero Fricción</span>
+                  <p className="text-[11px] text-purple-300/50 leading-normal">Modulo de importación inteligente para NinjaTrader, Tradovate y MetaTrader.</p>
                 </div>
-                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 text-left">
+                <div className="bg-[#180e22] border border-[#c084fc]/15 rounded-2xl p-4 text-left">
                   <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase block mb-1">Métricas RLS</span>
-                  <p className="text-[11px] text-slate-400 leading-normal">Máxima seguridad Supabase RLS. Tus trades son solo visibles para ti.</p>
+                  <p className="text-[11px] text-purple-300/50 leading-normal">Máxima seguridad Supabase RLS. Tus trades son solo visibles para ti.</p>
+                </div>
+              </div>
+
+              {/* Interactive Zoom Logo Showcase */}
+              <div className="bg-[#180e22]/60 border border-[#c084fc]/10 rounded-2xl p-4 space-y-3 mt-4 text-left relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-purple-500/5 blur-2xl pointer-events-none" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-[11px] font-bold text-[#ebd7ff]">Visor de Emblema (Interactive Compass)</h4>
+                    <p className="text-[9.5px] text-purple-400/50">Ajusta el zoom para ver en detalle la precisión del compás de trading</p>
+                  </div>
+                  <span className="text-[8px] font-mono bg-[#c084fc]/10 text-purple-300 border border-[#c084fc]/20 px-2 py-0.5 rounded-full uppercase scale-90">Zoom</span>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#12071a]/70 p-3.5 rounded-xl border border-purple-950/45">
+                  <div className="relative p-1 bg-[#180e22] border border-[#c084fc]/15 rounded-full shadow-inner flex items-center justify-center p-2.5 bg-gradient-to-b from-[#1c112a] to-[#12071a]">
+                    <AppLogo size={90} zoom={authLogoZoom} />
+                  </div>
+                  <div className="flex-grow w-full space-y-2">
+                    <div className="flex justify-between items-center text-[9px] font-mono">
+                      <span className="text-purple-400/70 uppercase">Escala de Lente:</span>
+                      <span className="text-[#ebd7ff] bg-purple-500/20 px-2 py-0.5 rounded font-bold">{authLogoZoom.toFixed(1)}x</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="1.0"
+                      max="3.0"
+                      step="0.05"
+                      value={authLogoZoom}
+                      onChange={(e) => setAuthLogoZoom(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-[#2a1640] accent-[#ebd7ff] rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[8px] font-mono text-purple-400/40">
+                      <span>1.0x (Original)</span>
+                      <span>3.0x (Zoom Máximo)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Offline Sandbox Button */}
-            <div className="pt-6">
+            <div className="pt-6 text-left">
               <button
                 id="enter-offline-demo-btn"
                 onClick={() => setIsOfflineMode(false)}
-                className="w-full md:w-auto bg-slate-900 hover:bg-slate-800 border border-slate-800/80 text-slate-300 hover:text-white px-5 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full md:w-auto bg-[#12071a] hover:bg-[#1f112c] border border-[#c084fc]/15 text-purple-300 hover:text-[#ebd7ff] px-5 py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <Zap className="w-4 h-4 text-amber-400" />
+                <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
                 Continuar en Modo Demo (Local)
               </button>
             </div>
           </div>
 
           {/* Right Panel: Clean login form */}
-          <div id="auth-form-panel" className="w-full md:w-[480px] p-8 md:p-12 flex flex-col justify-center bg-slate-900/40 border-l border-slate-800">
+          <div id="auth-form-panel" className="w-full md:w-[480px] p-8 md:p-12 flex flex-col justify-center bg-[#12071a]/40 border-l border-purple-950/20">
             <div className="w-full max-w-sm mx-auto space-y-6 text-left">
               <div>
-                <h2 className="font-display font-semibold text-lg text-slate-100">
+                <h2 className="font-display font-semibold text-lg text-[#ebd7ff]">
                   {isRegistering ? 'Crear una cuenta' : 'Inicializar Sesión Cloud'}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-purple-300/55 mt-1">
                   {isRegistering ? 'Regístrate para guardar y sincronizar tu diario con Supabase.' : 'Introduce tus credenciales para conectar tu diario en vercel.'}
                 </p>
               </div>
@@ -804,66 +841,66 @@ export default function App() {
               <form onSubmit={handleAuthSubmit} className="space-y-4">
                 {isRegistering && (
                   <div>
-                    <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Nombre Completo</label>
+                    <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Nombre Completo</label>
                     <div className="relative">
                       <input
                         type="text"
                         placeholder="ej. Félix Romero"
                         value={authFullName}
                         onChange={(e) => setAuthFullName(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-200 focus:outline-none transition-all"
+                        className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-[#ebd7ff] focus:outline-none transition-all"
                         required
                       />
-                      <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                      <User className="w-4 h-4 text-purple-450/40 absolute left-3 top-3" />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Correo Electrónico</label>
+                  <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Correo Electrónico</label>
                   <div className="relative">
                     <input
                       type="email"
                       placeholder="ej. felix@tradyum.com"
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-200 focus:outline-none transition-all"
+                      className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-[#ebd7ff] focus:outline-none transition-all"
                       required
                     />
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Mail className="w-4 h-4 text-purple-450/40 absolute left-3 top-3" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5 px-0.5">Contraseña</label>
+                  <label className="block text-[10px] font-mono text-purple-400/60 uppercase tracking-wider mb-1.5 px-0.5">Contraseña</label>
                   <div className="relative">
                     <input
                       type="password"
                       placeholder={isRegistering ? "Escoge una clave fuerte (min 6)" : "Tu contraseña"}
                       value={authPassword}
                       onChange={(e) => setAuthPassword(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-200 focus:outline-none transition-all"
+                      className="w-full bg-[#12071a] border border-[#c084fc]/15 focus:border-[#d946ef] rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-[#ebd7ff] focus:outline-none transition-all"
                       required
                     />
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Lock className="w-4 h-4 text-purple-450/40 absolute left-3 top-3" />
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-blue-500/10"
+                  className="w-full bg-gradient-to-r from-[#9333ea] to-[#db2777] hover:opacity-90 disabled:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-purple-500/15"
                 >
                   <CloudLightning className="w-4 h-4" />
                   {authLoading ? 'Procesando...' : isRegistering ? 'Crear Registro' : 'Conectarse a la Nube'}
                 </button>
               </form>
 
-              <div className="border-t border-slate-900 pt-4 text-center">
+              <div className="border-t border-[#c084fc]/10 pt-4 text-center">
                 <button
                   id="auth-toggle-reg-btn"
                   onClick={() => { setIsRegistering(!isRegistering); setAuthError(null); }}
-                  className="text-xs font-mono text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                  className="text-xs font-mono text-purple-450/50 hover:text-purple-300 underline cursor-pointer hover:no-underline"
                 >
                   {isRegistering ? '¿Ya tienes una cuenta? Iniciar Sesión' : '¿Aún sin cuenta? Crea una'}
                 </button>
@@ -872,7 +909,7 @@ export default function App() {
           </div>
         </div>
       ) : (
-        <div id="authenticated-app-canvas" className="flex-1 flex min-h-screen relative">
+        <div id="authenticated-app-canvas" className="flex-1 flex min-h-screen relative bg-[#0a0210]">
           
           {/* Siderbar navigation */}
           <Sidebar
@@ -885,24 +922,24 @@ export default function App() {
             onLogout={handleLogout}
           />
 
-            {/* Main workspace scroll canvas */}
-            <main id="main-scroll-canvas" className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto bg-slate-950 relative space-y-8">
-              
-              {/* Topbar welcome bar */}
-              {isOfflineMode && (
-                <div id="trial-pnl-notice" className="bg-gradient-to-r from-amber-500/20 to-orange-600/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-slate-200">🛠️ Estás en el Módulo Demo Offline</p>
-                    <p className="text-[10.5px] text-slate-400">Tus datos se guardan temporalmente en tu navegador. Para Sincronizar permanentemente con Supabase, presiona Conectar Nube.</p>
-                  </div>
-                  <button
-                    onClick={() => { setIsOfflineMode(false); setCurrentUser(null); }}
-                    className="bg-slate-950 hover:bg-slate-900 border border-slate-800 text-amber-400 py-1.5 px-3.5 rounded-xl text-xs font-mono cursor-pointer transition-colors"
-                  >
-                    Iniciar Sesión Supabase
-                  </button>
+          {/* Main workspace scroll canvas */}
+          <main id="main-scroll-canvas" className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto bg-[#0a0210] relative space-y-8">
+            
+            {/* Topbar welcome bar */}
+            {isOfflineMode && (
+              <div id="trial-pnl-notice" className="bg-gradient-to-r from-purple-950/40 to-fuchsia-950/20 border border-[#c084fc]/15 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-200">🛠️ Estás en el Módulo Demo Offline</p>
+                  <p className="text-[10.5px] text-purple-300/60">Tus datos se guardan temporalmente en tu navegador. Para Sincronizar permanentemente con Supabase, presiona Conectar Nube.</p>
                 </div>
-              )}
+                <button
+                  onClick={() => { setIsOfflineMode(false); setCurrentUser(null); }}
+                  className="bg-[#12071a] hover:bg-[#1f112c] border border-[#c084fc]/15 text-purple-300 py-1.5 px-3.5 rounded-xl text-xs font-mono cursor-pointer transition-colors"
+                >
+                  Iniciar Sesión Supabase
+                </button>
+              </div>
+            )}
 
               {/* Rendered Views Router */}
               {activeTab === 'dashboard' && (
