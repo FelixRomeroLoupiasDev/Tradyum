@@ -46,6 +46,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
   const [color, setColor] = useState('#3b82f6');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [dailyLossLimit, setDailyLossLimit] = useState('200');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +61,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
     setColor('#3b82f6');
     setApiKey('');
     setApiSecret('');
+    setDailyLossLimit('200');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,6 +81,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
         color,
         api_key: apiKey.trim() || undefined,
         api_secret: apiSecret.trim() || undefined,
+        daily_loss_limit: -Math.abs(parseFloat(dailyLossLimit) || 200),
         is_active: true
       };
 
@@ -109,6 +112,7 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
     setColor(acc.color || '#3b82f6');
     setApiKey(acc.api_key || '');
     setApiSecret(acc.api_secret || '');
+    setDailyLossLimit(String(acc.daily_loss_limit ? Math.abs(acc.daily_loss_limit) : '200'));
     setIsCreating(true);
   };
 
@@ -247,6 +251,19 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             </div>
 
             <div>
+              <label className="block text-[10px] font-mono text-rose-500 uppercase tracking-wider mb-1.5 font-bold">Límite de Pérdida Diaria ($) *</label>
+              <input
+                type="number"
+                placeholder="200"
+                value={dailyLossLimit}
+                onChange={(e) => setDailyLossLimit(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-red-500 focus:outline-none rounded-xl py-2.5 px-3.5 text-xs text-rose-200 transition-all font-mono"
+                required
+              />
+              <span className="text-[9.5px] text-slate-500 mt-1 block">Monto en USD. Al alcanzar esta pérdida el trading se bloqueará.</span>
+            </div>
+
+            <div>
               <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1.5">Color Temático</label>
               <div className="flex items-center gap-3">
                 <input
@@ -367,6 +384,21 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                       {absoluteChange >= 0 ? '+' : ''}{profitFormat} ({percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(2)}%)
                     </span>
                   </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-800/40 pt-2">
+                    <span className="text-[11px] text-rose-400/85 font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-rose-500" /> Blocker Diario:
+                    </span>
+                    <span className="text-xs font-bold font-mono text-cyan-400">
+                      -${Math.abs(acc.daily_loss_limit !== undefined ? acc.daily_loss_limit : -200)} USD
+                    </span>
+                  </div>
+
+                  {acc.is_blocked && (
+                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-semibold py-1 px-2 rounded-lg mt-2 text-center flex items-center justify-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> CUENTA BLOQUEADA HOY
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions Panel */}
