@@ -60,13 +60,7 @@ export default function App() {
     : [];
 
   const todayPnL = todayTrades.reduce((sum, t) => sum + (t.net_pnl || 0), 0);
-  const limitValue = activeAccount?.daily_loss_limit !== undefined ? activeAccount.daily_loss_limit : -200;
-  const absLimitValue = Math.abs(limitValue);
-
-  const currentLoss = todayPnL < 0 ? Math.abs(todayPnL) : 0;
-  const progressPct = absLimitValue > 0 ? (currentLoss / absLimitValue) * 100 : 0;
-
-  const isAccountBlocked = activeAccount?.is_blocked || (progressPct >= 100);
+  const isAccountBlocked = false;
 
   // Initialize Auth Observer
   useEffect(() => {
@@ -1005,75 +999,18 @@ export default function App() {
           </div>
         </div>
       ) : (
-        /* PRIMARY APPLICATION DESKTOP INTERFACE */
-          <div id="authenticated-app-canvas" className="flex-1 flex min-h-screen relative">
-            
-            {/* Global Block Overlay Screen (Unbypassable) */}
-            {isAccountBlocked && (
-              <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 text-center select-none animate-[fadeIn_0.3s_ease-out]">
-                <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl space-y-6 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-rose-500 animate-pulse" />
-                  <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/5">
-                    <ShieldAlert className="w-8 h-8 animate-bounce" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-display font-bold text-xl text-slate-100 tracking-tight">
-                      🚫 LÍMITE DE PÉRDIDA DIARIA ALCANZADO
-                    </h3>
-                    <p className="text-xs font-mono text-slate-400">
-                      Cuenta: <span className="text-slate-200 font-semibold">{activeAccount?.name}</span> ({activeAccount?.broker.toUpperCase()})
-                    </p>
-                  </div>
-
-                  <div className="bg-slate-950 p-4 rounded-xl border border-rose-500/10 text-left font-mono space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">PnL de Hoy:</span>
-                      <span className="text-rose-450 font-bold text-rose-400">${todayPnL.toFixed(2)} USD</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Límite Permitido:</span>
-                      <span className="text-slate-300 font-medium">-${absLimitValue.toFixed(2)} USD</span>
-                    </div>
-                    <div className="border-t border-slate-900 pt-2 text-[10.5px] text-slate-400 leading-normal">
-                      <span className="font-semibold text-rose-400">Acción de Control Ejecutada:</span> El sistema detectó que superaste el drawdown máximo configurado. Por política estricta de riesgo, tu trading queda inmediatamente bloqueado.
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <button
-                      onClick={async () => {
-                        if (confirm("⚠️ ¿Deseas desbloquear manualmente esta cuenta de trading?\nRecuerda respetar tu control psicológico y disciplina de riesgo.")) {
-                          if (activeAccount) {
-                            await handleUpdateAccount(activeAccount.id, {
-                              is_blocked: false,
-                              blocked_at: null,
-                              block_reason: null
-                            });
-                          }
-                        }
-                      }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
-                    >
-                      <Unlock className="w-3.5 h-3.5" /> Desbloquear Cuenta Manualmente
-                    </button>
-                    <p className="text-[10px] text-slate-500">
-                      El bloqueo se desactiva de manera remota a la medianoche (00:00 hora local)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Siderbar navigation */}
-            <Sidebar
-              accounts={accounts}
-              activeAccountId={activeAccountId}
-              setActiveAccountId={setActiveAccountId}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              userProfile={currentUser ? { name: userProfile?.full_name || currentUser.email.split('@')[0], email: currentUser.email } : null}
-              onLogout={handleLogout}
-            />
+        <div id="authenticated-app-canvas" className="flex-1 flex min-h-screen relative">
+          
+          {/* Siderbar navigation */}
+          <Sidebar
+            accounts={accounts}
+            activeAccountId={activeAccountId}
+            setActiveAccountId={setActiveAccountId}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            userProfile={currentUser ? { name: userProfile?.full_name || currentUser.email.split('@')[0], email: currentUser.email } : null}
+            onLogout={handleLogout}
+          />
 
             {/* Main workspace scroll canvas */}
             <main id="main-scroll-canvas" className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto bg-slate-950 relative space-y-8">
@@ -1091,26 +1028,6 @@ export default function App() {
                   >
                     Iniciar Sesión Supabase
                   </button>
-                </div>
-              )}
-
-              {/* 75% and 90% Risk drawdown workspace warning banners */}
-              {activeAccount && !isAccountBlocked && progressPct >= 75 && (
-                <div id="risk-drawdown-warning" className={`p-4 rounded-xl border flex items-center gap-3 text-left animate-pulse ${
-                  progressPct >= 90 
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-200' 
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-200'
-                }`}>
-                  <ShieldAlert className={`w-5 h-5 flex-shrink-0 ${progressPct >= 90 ? 'text-rose-450 text-rose-400' : 'text-amber-500'}`} />
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold font-display uppercase tracking-wider">
-                      {progressPct >= 90 ? '🛑 Alerta de riesgo crítico (90% de límite alcanzado)' : '⚠️ Advertencia de drawdown diario (75% de límite alcanzado)'}
-                    </p>
-                    <p className="text-[10.5px] text-slate-300 font-mono">
-                      Tu cuenta <span className="font-semibold text-slate-100 font-sans">{activeAccount.name}</span> ha consumido el <span className="font-bold underline">{progressPct.toFixed(0)}%</span> de su drawdown diario permitido de hoy. PnL actual: <span className="font-semibold">${todayPnL.toFixed(2)}</span> (límite diario: -${absLimitValue} USD).
-                      {progressPct >= 90 && " Se ha enviado una notificación de advertencia por correo electrónico."}
-                    </p>
-                  </div>
                 </div>
               )}
 
